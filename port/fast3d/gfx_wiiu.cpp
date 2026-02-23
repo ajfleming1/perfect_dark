@@ -44,6 +44,7 @@
 #include "gfx_pc.h"
 #include "gfx_gx2.h"
 #include "gfx_wiiu.h"
+#include "input.h"
 
 static MEMHeapHandle heap_MEM1 = nullptr;
 static MEMHeapHandle heap_foreground = nullptr;
@@ -193,6 +194,33 @@ static uint32_t gfx_wiiu_proc_callback_released(void* context) {
     return 0;
 }
 
+extern "C" void wiiuReadPad(OSContPad *pad) {
+    VPADStatus buffer[16];
+    VPADReadError error;
+    int count = VPADRead(VPAD_CHAN_0, buffer, 16, &error);
+    if (count > 0 && error == VPAD_READ_SUCCESS) {
+        VPADStatus *s = &buffer[count - 1];
+        if (s->hold & VPAD_BUTTON_A) pad->button |= A_BUTTON;
+        if (s->hold & VPAD_BUTTON_B) pad->button |= B_BUTTON;
+        if (s->hold & VPAD_BUTTON_PLUS) pad->button |= START_BUTTON;
+        if (s->hold & VPAD_BUTTON_ZL) pad->button |= Z_TRIG;
+        if (s->hold & VPAD_BUTTON_L) pad->button |= L_TRIG;
+        if (s->hold & VPAD_BUTTON_R) pad->button |= R_TRIG;
+        
+        // Map D-Pad
+        if (s->hold & VPAD_BUTTON_LEFT) pad->button |= L_JPAD;
+        if (s->hold & VPAD_BUTTON_RIGHT) pad->button |= R_JPAD;
+        if (s->hold & VPAD_BUTTON_UP) pad->button |= U_JPAD;
+        if (s->hold & VPAD_BUTTON_DOWN) pad->button |= D_JPAD;
+
+        // Map Sticks
+        pad->stick_x = (s8)(s->leftStick.x * 80.0f);
+        pad->stick_y = (s8)(s->leftStick.y * 80.0f);
+        pad->rstick_x = (s8)(s->rightStick.x * 80.0f);
+        pad->rstick_y = (s8)(s->rightStick.y * 80.0f);
+    }
+}
+
 static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
     WHBLogPrintf("gfx_wiiu_init: starting");
 
@@ -301,6 +329,9 @@ static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
     gfx_current_dimensions.width = gfx_current_game_window_viewport.width = WIIU_DEFAULT_FB_WIDTH;
     gfx_current_dimensions.height = gfx_current_game_window_viewport.height = WIIU_DEFAULT_FB_HEIGHT;
     WHBLogPrintf("gfx_wiiu_init: complete");
+
+    // Re-initialize input to fix conflicts with WHBProcInit
+    inputReload();
 }
 
 static void gfx_wiiu_close(void) {
@@ -401,7 +432,7 @@ static void gfx_wiiu_get_centered_positions(int32_t width, int32_t height, int32
 }
 
 static void gfx_wiiu_handle_events(void) {
-    ProcUIStatus status = ProcUIProcessMessages(TRUE);
+    ProcUIStatus status = ProcUIProcessMessages(FALSE);
     if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
         ProcUIDrawDoneRelease();
     }

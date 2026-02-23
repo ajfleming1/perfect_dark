@@ -12,6 +12,10 @@
 #include "system.h"
 #include "fs.h"
 
+#ifdef __WIIU__
+extern void wiiuReadPad(OSContPad *pad);
+#endif
+
 #if !SDL_VERSION_ATLEAST(2, 0, 14)
 // this was added in 2.0.14
 #define SDL_CONTROLLER_TYPE_VIRTUAL SDL_CONTROLLER_TYPE_UNKNOWN
@@ -416,6 +420,18 @@ static inline void inputCloseAllControllers(void)
 
 static inline s32 inputTryController(const s32 cidx, const s32 jidx)
 {
+#ifdef __WIIU__
+	const char* name = SDL_JoystickNameForIndex(jidx);
+	if (name && strstr(name, "Wii U Gamepad")) {
+		if (cidx == 0) {
+			sysLogPrintf(LOG_NOTE, "Input: Skipping SDL open for GamePad (using direct read)");
+			connectedMask |= (1 << cidx);
+			return 1;
+		}
+		return 0;
+	}
+#endif
+
 	if (!pads[cidx]) {
 		pads[cidx] = SDL_GameControllerOpen(jidx);
 		if (pads[cidx]) {
@@ -431,6 +447,7 @@ static inline void inputInitAllControllers(void)
 	SDL_GameControllerUpdate();
 
 	numJoysticks = SDL_NumJoysticks();
+	sysLogPrintf(LOG_NOTE, "Input: inputInitAllControllers found %d joysticks", numJoysticks);
 
 	connectedMask = 1; // always report first controller as connected
 
@@ -802,12 +819,24 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		npad->stick_y = 0;
 		npad->rstick_x = 0;
 		npad->rstick_y = 0;
-		return 0;
 	}
 
 	for (u32 i = 0; i < CONT_NUM_BUTTONS; ++i) {
 		if (inputBindPressed(idx, i)) {
 			npad->button |= 1U << i;
+		}
+	}
+
+#ifdef __WIIU__
+	if (idx == 0) {
+		wiiuReadPad(npad);
+	}
+#endif
+
+	if (idx == 0) {
+		static int log_limit = 0;
+		if ((log_limit++ % 120) == 0) {
+			sysLogPrintf(LOG_NOTE, "Input: Pad 0 read. Ptr: %p, Buttons: %04x, TextInput: %d", pads[0], npad->button, textInput);
 		}
 	}
 
@@ -827,6 +856,12 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 			npad->button &= ~(U_CBUTTONS | D_CBUTTONS);
 		}
 	}
+
+#ifdef __WIIU__
+	if (idx == 0) {
+		wiiuReadPad(npad);
+	}
+#endif
 
 	if (!pads[idx]) {
 		return 0;
@@ -917,6 +952,7 @@ static inline void inputUpdateMouse(void)
 
 void inputUpdate(void)
 {
+	SDL_PumpEvents();
 	SDL_GameControllerUpdate();
 
 	if (mouseEnabled) {
@@ -1512,6 +1548,18 @@ s32 inputIsTextInputActive(void)
 u32 inputGetKeyModState(void)
 {
 	return SDL_GetModState();
+}
+
+void inputReload(void)
+{
+	// Re-initialize SDL input subsystems to recover from potential conflicts (e.g. with WHBProcInit)
+	SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
+	if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0) {
+		sysLogPrintf(LOG_NOTE, "Input: Reloaded SDL Subsystems.");
+	} else {
+		sysLogPrintf(LOG_ERROR, "Input: Failed to reload SDL: %s", SDL_GetError());
+	}
+	inputInitAllControllers();
 }
 
 PD_CONSTRUCTOR static void inputConfigInit(void)

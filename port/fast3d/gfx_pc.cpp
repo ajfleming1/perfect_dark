@@ -855,8 +855,13 @@ static void import_texture_i8(int tile, const LoadedTexture& loaded_texture, boo
 
 static inline void palette_to_rgba32(const uint16_t palentry, uint8_t *rgba32_buf) {
     if (rdp.palette_fmt == G_TT_IA16) {
+#ifdef PLATFORM_BIG_ENDIAN
+        const uint8_t intensity = palentry >> 8;
+        const uint8_t alpha = palentry & 0xff;
+#else
         const uint8_t intensity = (palentry & 0xff);
         const uint8_t alpha = palentry >> 8;
+#endif
         rgba32_buf[0] = intensity;
         rgba32_buf[1] = intensity;
         rgba32_buf[2] = intensity;

@@ -194,10 +194,19 @@ static uint32_t gfx_wiiu_proc_callback_released(void* context) {
     return 0;
 }
 
-extern "C" void wiiuReadPad(OSContPad *pad) {
+extern "C" void wiiuReadPad(OSContPad *pad, int32_t *lx, int32_t *ly, int32_t *rx, int32_t *ry) {
     VPADStatus buffer[16];
     VPADReadError error;
     int count = VPADRead(VPAD_CHAN_0, buffer, 16, &error);
+    
+    static int log_limit = 0;
+    if (log_limit++ % 120 == 0) {
+        WHBLogPrintf("VPAD: Count=%d Error=%d", count, error);
+        if (count > 0) {
+             WHBLogPrintf("VPAD: Hold=%08x", buffer[count-1].hold);
+        }
+    }
+
     if (count > 0 && error == VPAD_READ_SUCCESS) {
         VPADStatus *s = &buffer[count - 1];
         if (s->hold & VPAD_BUTTON_A) pad->button |= A_BUTTON;
@@ -213,11 +222,13 @@ extern "C" void wiiuReadPad(OSContPad *pad) {
         if (s->hold & VPAD_BUTTON_UP) pad->button |= U_JPAD;
         if (s->hold & VPAD_BUTTON_DOWN) pad->button |= D_JPAD;
 
-        // Map Sticks
-        pad->stick_x = (s8)(s->leftStick.x * 80.0f);
-        pad->stick_y = (s8)(s->leftStick.y * 80.0f);
-        pad->rstick_x = (s8)(s->rightStick.x * 80.0f);
-        pad->rstick_y = (s8)(s->rightStick.y * 80.0f);
+        // Map Sticks to SDL range (+-32767)
+        // VPAD is -1.0 to 1.0 (Up positive)
+        // SDL is -32768 to 32767 (Up negative)
+        *lx = (int32_t)(s->leftStick.x * 32767.0f);
+        *ly = (int32_t)(s->leftStick.y * -32767.0f);
+        *rx = (int32_t)(s->rightStick.x * 32767.0f);
+        *ry = (int32_t)(s->rightStick.y * -32767.0f);
     }
 }
 

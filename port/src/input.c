@@ -13,7 +13,7 @@
 #include "fs.h"
 
 #ifdef __WIIU__
-extern void wiiuReadPad(OSContPad *pad);
+extern void wiiuReadPad(OSContPad *pad, int32_t *lx, int32_t *ly, int32_t *rx, int32_t *ry);
 #endif
 
 #if !SDL_VERSION_ATLEAST(2, 0, 14)
@@ -827,12 +827,6 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		}
 	}
 
-#ifdef __WIIU__
-	if (idx == 0) {
-		wiiuReadPad(npad);
-	}
-#endif
-
 	if (idx == 0) {
 		static int log_limit = 0;
 		if ((log_limit++ % 120) == 0) {
@@ -840,12 +834,47 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		}
 	}
 
+	const struct controllercfg *cfg = &padsCfg[idx];
+	s32 rawAxes[4] = {0};
+
+#ifdef __WIIU__
+	if (idx == 0) {
+		wiiuReadPad(npad, &rawAxes[0], &rawAxes[1], &rawAxes[2], &rawAxes[3]);
+	}
+#endif
+
+	if (pads[idx]) {
+		rawAxes[0] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_LEFTX);
+		rawAxes[1] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_LEFTY);
+		rawAxes[2] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_RIGHTX);
+		rawAxes[3] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_RIGHTY);
+	} else if (idx != 0) {
+		return 0;
+	}
+
+	s32 leftX = rawAxes[cfg->axisMap[0][0]];
+	s32 leftY = rawAxes[cfg->axisMap[0][1]];
+	s32 rightX = rawAxes[cfg->axisMap[1][0]];
+	s32 rightY = rawAxes[cfg->axisMap[1][1]];
+
+	leftX = inputAxisScale(leftX, cfg->deadzone[cfg->axisMap[0][0]], cfg->sens[cfg->axisMap[0][0]]);
+	leftY = inputAxisScale(leftY, cfg->deadzone[cfg->axisMap[0][1]], cfg->sens[cfg->axisMap[0][1]]);
+	rightX = inputAxisScale(rightX, cfg->deadzone[cfg->axisMap[1][0]], cfg->sens[cfg->axisMap[1][0]]);
+	rightY = inputAxisScale(rightY, cfg->deadzone[cfg->axisMap[1][1]], cfg->sens[cfg->axisMap[1][1]]);
+
 	const s32 xdiff = (inputBindPressed(idx, CK_STICK_XPOS) - inputBindPressed(idx, CK_STICK_XNEG));
 	const s32 ydiff = (inputBindPressed(idx, CK_STICK_YPOS) - inputBindPressed(idx, CK_STICK_YNEG));
 	npad->stick_x = xdiff < 0 ? -0x80 : (xdiff > 0 ? 0x7F : 0);
 	npad->stick_y = ydiff < 0 ? -0x80 : (ydiff > 0 ? 0x7F : 0);
 
-	const struct controllercfg *cfg = &padsCfg[idx];
+	if (!npad->stick_x && leftX) {
+		npad->stick_x = leftX / 0x100;
+	}
+
+	s32 stickY = -leftY / 0x100;
+	if (!npad->stick_y && stickY) {
+		npad->stick_y = (stickY == 128) ? 127 : stickY;
+	}
 
 	if (cfg->cancelCButtons) {
 		// opposite C buttons cancel each other out
@@ -855,35 +884,6 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		if ((npad->button & (U_CBUTTONS | D_CBUTTONS)) == (U_CBUTTONS | D_CBUTTONS)) {
 			npad->button &= ~(U_CBUTTONS | D_CBUTTONS);
 		}
-	}
-
-#ifdef __WIIU__
-	if (idx == 0) {
-		wiiuReadPad(npad);
-	}
-#endif
-
-	if (!pads[idx]) {
-		return 0;
-	}
-
-	s32 leftX = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[0][0]);
-	s32 leftY = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[0][1]);
-	s32 rightX = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[1][0]);
-	s32 rightY = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[1][1]);
-
-	leftX = inputAxisScale(leftX, cfg->deadzone[cfg->axisMap[0][0]], cfg->sens[cfg->axisMap[0][0]]);
-	leftY = inputAxisScale(leftY, cfg->deadzone[cfg->axisMap[0][1]], cfg->sens[cfg->axisMap[0][1]]);
-	rightX = inputAxisScale(rightX, cfg->deadzone[cfg->axisMap[1][0]], cfg->sens[cfg->axisMap[1][0]]);
-	rightY = inputAxisScale(rightY, cfg->deadzone[cfg->axisMap[1][1]], cfg->sens[cfg->axisMap[1][1]]);
-
-	if (!npad->stick_x && leftX) {
-		npad->stick_x = leftX / 0x100;
-	}
-
-	s32 stickY = -leftY / 0x100;
-	if (!npad->stick_y && stickY) {
-		npad->stick_y = (stickY == 128) ? 127 : stickY;
 	}
 
 	if (cfg->stickCButtons) {

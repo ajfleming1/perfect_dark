@@ -2329,7 +2329,7 @@ Gfx *player0f0baf84(Gfx *gdl)
 		u16 b;
 
 		guPerspective(a, &b, g_Vars.currentplayer->zoominfovy,
-				PAL ? 1.7316017150879f : 1.4545454978943f, 10, 300, 1);
+				PAL ? 1.7316017150879f : 1.4545454978943f, 300, 5000, 1);
 
 		gSPMatrix(gdl++, OS_PHYSICAL_TO_K0(a), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_PROJECTION);
 		gSPPerspNormalize(gdl++, b);

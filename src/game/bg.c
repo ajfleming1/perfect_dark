@@ -3334,6 +3334,7 @@ Gfx *bgRenderRoomOpaque(Gfx *gdl, s32 roomnum)
 
 	gdl = roomApplyMtx(gdl, roomnum);
 
+	gDPSetPrimColor(gdl++, 0, 0, 255, 255, 255, 255);
 	gdl = lightsSetForRoom(gdl, roomnum);
 	gdl = bgRenderRoomPass(gdl, roomnum, g_Rooms[roomnum].gfxdata->opablocks, true);
 	gdl = lightsSetDefault(gdl);
@@ -3364,6 +3365,7 @@ Gfx *bgRenderRoomXlu(Gfx *gdl, s32 roomnum)
 		if (g_Rooms[roomnum].gfxdata);
 		if (g_Rooms[roomnum].gfxdata);
 
+		gDPSetPrimColor(gdl++, 0, 0, 255, 255, 255, 255);
 		gdl = roomApplyMtx(gdl, roomnum);
 		gdl = bgRenderRoomPass(gdl, roomnum, g_Rooms[roomnum].gfxdata->xlublocks, true);
 

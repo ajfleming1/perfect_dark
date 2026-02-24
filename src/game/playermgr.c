@@ -483,7 +483,7 @@ void playermgrAllocatePlayer(s32 index)
 	g_Vars.players[index]->c_screenheight = PAL ? 272 : SCREEN_240;
 	g_Vars.players[index]->c_screenleft = 0;
 	g_Vars.players[index]->c_screentop = 0;
-	g_Vars.players[index]->c_perspnear = 10;
+	g_Vars.players[index]->c_perspnear = 30;
 	g_Vars.players[index]->c_perspfovy = 46;
 	g_Vars.players[index]->c_perspaspect = 1;
 	g_Vars.players[index]->c_halfwidth = SCREEN_320 / 2;

@@ -13596,12 +13596,16 @@ Gfx *gfxRenderRadialShadow(Gfx *gdl, f32 x, f32 y, f32 z, f32 angle, f32 radius,
 		texSelect(&gdl, NULL, 1, 1, 2, 1, NULL);
 	}
 
+	gDPSetRenderMode(gdl++, G_RM_AA_ZB_XLU_DECAL, G_RM_AA_ZB_XLU_DECAL2);
+
 	gSPSetGeometryMode(gdl++, G_CULL_BACK);
 	gSPMatrix(gdl++, osVirtualToPhysical(mtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
 	gSPColor(gdl++, osVirtualToPhysical(colours), 1);
 	gSPVertex(gdl++, osVirtualToPhysical(vertices), 4, 0);
 	gSPTri2(gdl++, 0, 1, 2, 2, 3, 0);
+
+	gDPSetPrimColor(gdl++, 0, 0, 255, 255, 255, 255);
 
 	return gdl;
 }
@@ -13856,6 +13860,7 @@ Gfx *objRender(struct prop *prop, Gfx *gdl, bool xlupass)
 	}
 
 	renderdata.fogcolour = colour[0] << 24 | colour[1] << 16 | colour[2] << 8 | colour[3];
+	gDPSetPrimColor(gdl++, 0, 0, 255, 255, 255, 255);
 	objRenderProp(prop, &renderdata, xlupass);
 
 	gdl = renderdata.gdl;

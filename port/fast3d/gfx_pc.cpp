@@ -193,6 +193,7 @@ static struct RDP {
     bool viewport_or_scissor_changed;
     void* z_buf_address;
     void* color_image_address;
+    float prim_depth;
 
     int16_t subpixel_ofs_x;
     int16_t subpixel_ofs_y;
@@ -686,16 +687,24 @@ static void import_texture_ia4(int tile, const LoadedTexture& loaded_texture, bo
     }
 
     uint8_t *dest = tex_upload_buffer;
-    for (uint32_t i = 0; i < size_bytes * 2; i++, dest += 4) {
-        const uint8_t byte = addr[i / 2];
-        const uint8_t part = (byte >> (4 - (i % 2) * 4)) & 0xf;
-        const uint8_t intensity = part >> 1;
-        const uint8_t alpha = part & 1;
-        const uint8_t c = SCALE_3_8(intensity);
-        dest[0] = c;
-        dest[1] = c;
-        dest[2] = c;
-        dest[3] = alpha ? 255 : 0;
+    for (uint32_t i = 0, j = 0; j < size_bytes; j += full_image_line_size_bytes - line_size_bytes) {
+        for (uint32_t k = 0; k < line_size_bytes; k++, j++) {
+            const uint8_t byte = addr[j];
+            
+            uint8_t part = (byte >> 4) & 0xf;
+            uint8_t intensity = part >> 1;
+            uint8_t alpha = part & 1;
+            uint8_t c = SCALE_3_8(intensity);
+            dest[0] = c; dest[1] = c; dest[2] = c; dest[3] = alpha ? 255 : 0;
+            dest += 4;
+
+            part = byte & 0xf;
+            intensity = part >> 1;
+            alpha = part & 1;
+            c = SCALE_3_8(intensity);
+            dest[0] = c; dest[1] = c; dest[2] = c; dest[3] = alpha ? 255 : 0;
+            dest += 4;
+        }
     }
 
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes * 2;
@@ -726,13 +735,15 @@ static void import_texture_ia8(int tile, const LoadedTexture& loaded_texture, bo
     }
 
     uint8_t *dest = tex_upload_buffer;
-    for (uint32_t i = 0; i < size_bytes; i++, dest += 4) {
-        const uint8_t intensity = SCALE_4_8(addr[i] >> 4);
-        const uint8_t alpha = SCALE_4_8(addr[i] & 0xf);
-        dest[0] = intensity;
-        dest[1] = intensity;
-        dest[2] = intensity;
-        dest[3] = alpha;
+    for (uint32_t i = 0, j = 0; j < size_bytes; j += full_image_line_size_bytes - line_size_bytes) {
+        for (uint32_t k = 0; k < line_size_bytes; k++, j++) {
+            const uint8_t val = addr[j];
+            const uint8_t intensity = SCALE_4_8(val >> 4);
+            const uint8_t alpha = SCALE_4_8(val & 0xf);
+            dest[0] = intensity; dest[1] = intensity; dest[2] = intensity; dest[3] = alpha;
+            dest += 4;
+            i++;
+        }
     }
 
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes;
@@ -800,14 +811,20 @@ static void import_texture_i4(int tile, const LoadedTexture& loaded_texture, boo
     }
 
     uint8_t *dest = tex_upload_buffer;
-    for (uint32_t i = 0; i < size_bytes * 2; i++, dest += 4) {
-        const uint8_t byte = addr[i / 2];
-        const uint8_t part = (byte >> (4 - (i % 2) * 4)) & 0xf;
-        const uint8_t intensity = SCALE_4_8(part);
-        dest[0] = intensity;
-        dest[1] = intensity;
-        dest[2] = intensity;
-        dest[3] = intensity;
+    for (uint32_t i = 0, j = 0; j < size_bytes; j += full_image_line_size_bytes - line_size_bytes) {
+        for (uint32_t k = 0; k < line_size_bytes; k++, j++) {
+            const uint8_t byte = addr[j];
+            
+            uint8_t part = (byte >> 4) & 0xf;
+            uint8_t intensity = SCALE_4_8(part);
+            dest[0] = intensity; dest[1] = intensity; dest[2] = intensity; dest[3] = intensity;
+            dest += 4;
+
+            part = byte & 0xf;
+            intensity = SCALE_4_8(part);
+            dest[0] = intensity; dest[1] = intensity; dest[2] = intensity; dest[3] = intensity;
+            dest += 4;
+        }
     }
 
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes * 2;
@@ -838,12 +855,13 @@ static void import_texture_i8(int tile, const LoadedTexture& loaded_texture, boo
     }
 
     uint8_t *dest = tex_upload_buffer;
-    for (uint32_t i = 0; i < size_bytes; i++, dest += 4) {
-        const uint8_t intensity = addr[i];
-        dest[0] = intensity;
-        dest[1] = intensity;
-        dest[2] = intensity;
-        dest[3] = intensity;
+    for (uint32_t i = 0, j = 0; j < size_bytes; j += full_image_line_size_bytes - line_size_bytes) {
+        for (uint32_t k = 0; k < line_size_bytes; k++, j++) {
+            const uint8_t intensity = addr[j];
+            dest[0] = intensity; dest[1] = intensity; dest[2] = intensity; dest[3] = intensity;
+            dest += 4;
+            i++;
+        }
     }
 
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes;
@@ -901,10 +919,14 @@ static void import_texture_ci4(int tile, const LoadedTexture& loaded_texture, bo
         return;
     }
 
-    for (uint32_t i = 0; i < size_bytes * 2; i++) {
-        const uint8_t byte = addr[i / 2];
-        const uint8_t idx = (byte >> (4 - (i % 2) * 4)) & 0xf;
-        palette_to_rgba32(palette[idx], tex_upload_buffer +4 * i);
+    for (uint32_t i = 0, j = 0; j < size_bytes; j += full_image_line_size_bytes - line_size_bytes) {
+        for (uint32_t k = 0; k < line_size_bytes; k++, j++) {
+            const uint8_t byte = addr[j];
+            const uint8_t idx1 = (byte >> 4) & 0xf;
+            const uint8_t idx2 = byte & 0xf;
+            palette_to_rgba32(palette[idx1], tex_upload_buffer + 4 * i++);
+            palette_to_rgba32(palette[idx2], tex_upload_buffer + 4 * i++);
+        }
     }
 
     uint32_t result_line_size = rdp.texture_tile[tile].line_size_bytes;
@@ -1541,7 +1563,13 @@ static void gfx_sp_tri1(uint32_t vtx1_idx, uint32_t vtx2_idx, uint32_t vtx3_idx,
 
     for (int i = 0; i < 3; i++) {
         float z = v_arr[i]->z, w = v_arr[i]->w;
-        if (clip_parameters.z_is_from_0_to_1) {
+        if ((rdp.other_mode_l & G_ZS_PRIM) == G_ZS_PRIM) {
+            if (clip_parameters.z_is_from_0_to_1) {
+                z = rdp.prim_depth * w;
+            } else {
+                z = (rdp.prim_depth * 2.0f - 1.0f) * w;
+            }
+        } else if (clip_parameters.z_is_from_0_to_1) {
             z = (z + w) / 2.0f;
         }
 
@@ -1980,9 +2008,15 @@ static void gfx_dp_load_block(uint8_t tile, uint32_t uls, uint32_t ult, uint32_t
     LoadedTexture& loaded_texture = rdp.loaded_texture[rdp.texture_tile[tile].tmem];
     loaded_texture.orig_size_bytes = orig_size_bytes;
     loaded_texture.size_bytes = size_bytes;
-    loaded_texture.full_size_bytes = size_bytes;
+    
+    if (dxt > 0) {
+        loaded_texture.full_image_line_size_bytes = (2048 * 8) / dxt;
+    } else {
+        loaded_texture.full_image_line_size_bytes = size_bytes;
+    }
+    
     loaded_texture.line_size_bytes = size_bytes;
-    loaded_texture.full_image_line_size_bytes = size_bytes;
+    loaded_texture.full_size_bytes = size_bytes;
     loaded_texture.tex_flags = rdp.texture_to_load.tex_flags;
     loaded_texture.raw_tex_metadata = rdp.texture_to_load.raw_tex_metadata;
     loaded_texture.addr = rdp.texture_to_load.addr;
@@ -2477,6 +2511,9 @@ static void gfx_run_dl(Gfx* cmd) {
                 break;
             case G_SETENVCOLOR:
                 gfx_dp_set_env_color(C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));
+                break;
+            case G_SETPRIMDEPTH:
+                rdp.prim_depth = ((cmd->words.w1 >> 16) & 0xFFFF) / 65535.0f;
                 break;
             case G_SETPRIMCOLOR:
                 gfx_dp_set_prim_color(C0(8, 8), C0(0, 8), C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));

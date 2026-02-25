@@ -437,11 +437,7 @@ static void gfx_gx2_set_depth_mode(bool depth_test, bool depth_update, bool dept
                     break;
                 case ZMODE_OPA:
                 case ZMODE_XLU:
-                    if (depth_source_prim) {
-                        current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
-                    } else {
-                        current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
-                    }
+                    current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
                     GX2SetPolygonOffset(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
                     GX2SetPolygonControl(GX2_FRONT_FACE_CCW, FALSE, FALSE, FALSE, GX2_POLYGON_MODE_TRIANGLE,
                                          GX2_POLYGON_MODE_TRIANGLE, FALSE, FALSE, FALSE);
@@ -450,7 +446,7 @@ static void gfx_gx2_set_depth_mode(bool depth_test, bool depth_update, bool dept
                 case ZMODE_DEC:
                     current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
                     // Enable polygon offset for decal mode
-                    float SSDB = -64.0f;
+                    float SSDB = -8.0f;
                     current_SSDB = SSDB;
                     GX2SetPolygonOffset(SSDB, SSDB, SSDB, SSDB, 0.0f);
                     GX2SetPolygonControl(GX2_FRONT_FACE_CCW, FALSE, FALSE, TRUE, GX2_POLYGON_MODE_TRIANGLE,
@@ -530,7 +526,10 @@ static void gfx_gx2_set_scissor(int x, int y, int width, int height) {
     current_scissor_width = (uint32_t)gx2_width;
     current_scissor_height = (uint32_t)gx2_height;
 
-    GX2SetScissor(current_scissor_x, current_scissor_y, current_scissor_width, current_scissor_height);
+    // DIAGNOSTIC: Disable scissor to test if it's causing portal black rectangles
+    // GX2SetScissor(current_scissor_x, current_scissor_y, current_scissor_width, current_scissor_height);
+    // Set scissor to full framebuffer as fallback
+    GX2SetScissor(0, 0, WIIU_DEFAULT_FB_WIDTH, WIIU_DEFAULT_FB_HEIGHT);
 }
 
 static void gfx_gx2_set_use_alpha(bool use_alpha, bool modulate) {

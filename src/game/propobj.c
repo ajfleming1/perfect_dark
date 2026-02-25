@@ -13559,7 +13559,7 @@ Gfx *gfxRenderRadialShadow(Gfx *gdl, f32 x, f32 y, f32 z, f32 angle, f32 radius,
 	colours[0].word = PD_BE32(colour);
 
 	pos.x = x;
-	pos.y = y + 2.0f;
+	pos.y = y + 3.0f;
 	pos.z = z;
 
 	mtx = gfxAllocateMatrix();

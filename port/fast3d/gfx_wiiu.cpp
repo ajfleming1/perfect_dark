@@ -302,6 +302,9 @@ static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
     GX2CalcDRCSize(drc_render_mode, GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE, &drc_scan_buffer_size, &drc_unk);
     WHBLogPrintf("gfx_wiiu_init: tv_scan_buffer_size=%u drc_scan_buffer_size=%u", tv_scan_buffer_size, drc_scan_buffer_size);
 
+    gfx_wiiu_init_mem1();
+    WHBLogPrintf("gfx_wiiu_init: init_mem1 done");
+
     // Should call Acquire callback immediately
     WHBLogPrintf("gfx_wiiu_init: entering ProcUI loop");
     ProcUIStatus status;
@@ -325,11 +328,6 @@ static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
         gfx_wiiu_proc_callback_acquired(nullptr);
         WHBLogPrintf("gfx_wiiu_init: manual acquire done, has_foreground=%d", (int)has_foreground);
     }
-
-    // Init MEM1 heap AFTER acquiring foreground. On real hardware MEM1 is a foreground
-    // resource managed by ProcUI and must not be touched until ACQUIRE has fired.
-    gfx_wiiu_init_mem1();
-    WHBLogPrintf("gfx_wiiu_init: init_mem1 done");
 
     // These may not be supported in Cemu, but are needed on real hardware
     GX2SetTVScale(WIIU_DEFAULT_FB_WIDTH, WIIU_DEFAULT_FB_HEIGHT);

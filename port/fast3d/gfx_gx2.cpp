@@ -437,7 +437,7 @@ static void gfx_gx2_set_depth_mode(bool depth_test, bool depth_update, bool dept
                     break;
                 case ZMODE_OPA:
                 case ZMODE_XLU:
-                    current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
+                    current_depth_compare_function = GX2_COMPARE_FUNC_LESS;
                     GX2SetPolygonOffset(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
                     GX2SetPolygonControl(GX2_FRONT_FACE_CCW, FALSE, FALSE, FALSE, GX2_POLYGON_MODE_TRIANGLE,
                                          GX2_POLYGON_MODE_TRIANGLE, FALSE, FALSE, FALSE);
@@ -446,11 +446,11 @@ static void gfx_gx2_set_depth_mode(bool depth_test, bool depth_update, bool dept
                 case ZMODE_DEC:
                     current_depth_compare_function = GX2_COMPARE_FUNC_LEQUAL;
                     // Enable polygon offset for decal mode
-                    float SSDB = -8.0f;
+                    float SSDB = -2.0f;
                     current_SSDB = SSDB;
                     GX2SetPolygonOffset(SSDB, SSDB, SSDB, SSDB, 0.0f);
                     GX2SetPolygonControl(GX2_FRONT_FACE_CCW, FALSE, FALSE, TRUE, GX2_POLYGON_MODE_TRIANGLE,
-                                         GX2_POLYGON_MODE_TRIANGLE, TRUE, TRUE, TRUE);
+                                         GX2_POLYGON_MODE_TRIANGLE, TRUE, TRUE, FALSE);
                     current_zmode_decal = true;
                     break;
             }
@@ -799,18 +799,23 @@ static void gfx_gx2_update_framebuffer_parameters(int fb, uint32_t width, uint32
     GX2CalcSurfaceSizeAndAlignment(&buffer.color_buffer.surface);
     GX2InitColorBufferRegs(&buffer.color_buffer);
 
-    // Mirror how the main framebuffer sets up its texture: copy the color_buffer surface
-    // directly so the tileMode (and thus imageSize) always matches. On real hardware
-    // GX2_TILE_MODE_DEFAULT resolves to an actual tiled mode that differs in size from
-    // GX2_TILE_MODE_LINEAR_ALIGNED, which would fire the assert below and crash.
     memset(&buffer.texture, 0, sizeof(GX2Texture));
-    buffer.texture.surface = buffer.color_buffer.surface;
     buffer.texture.surface.use = GX2_SURFACE_USE_TEXTURE;
+    buffer.texture.surface.dim = GX2_SURFACE_DIM_TEXTURE_2D;
+    buffer.texture.surface.width = width;
+    buffer.texture.surface.height = height;
+    buffer.texture.surface.depth = 1;
+    buffer.texture.surface.mipLevels = 1;
+    buffer.texture.surface.format = GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8;
+    buffer.texture.surface.aa = GX2_AA_MODE1X;
+    buffer.texture.surface.tileMode = GX2_TILE_MODE_LINEAR_ALIGNED;
     buffer.texture.viewFirstMip = 0;
     buffer.texture.viewNumMips = 1;
     buffer.texture.viewFirstSlice = 0;
     buffer.texture.viewNumSlices = 1;
     buffer.texture.compMap = GX2_COMP_MAP(GX2_SQ_SEL_R, GX2_SQ_SEL_G, GX2_SQ_SEL_B, GX2_SQ_SEL_A);
+
+    GX2CalcSurfaceSizeAndAlignment(&buffer.texture.surface);
     GX2InitTextureRegs(&buffer.texture);
 
     // the texture and color buffer share a buffer
@@ -855,10 +860,8 @@ void gfx_gx2_clear_framebuffer(bool clear_color, bool clear_depth) {
         GX2ClearColor(&buffer.color_buffer, 0.0f, 0.0f, 0.0f, 1.0f);
     }
     if (clear_depth) {
-        // GX2_SURFACE_FORMAT_FLOAT_R32 has no stencil plane; use DEPTH only to avoid
-        // undefined behaviour on real hardware when clearing a non-existent stencil.
         GX2ClearDepthStencilEx(&buffer.depth_buffer, buffer.depth_buffer.depthClear, buffer.depth_buffer.stencilClear,
-                               GX2_CLEAR_FLAGS_DEPTH);
+                               GX2_CLEAR_FLAGS_BOTH);
     }
 
     gfx_wiiu_set_context_state();

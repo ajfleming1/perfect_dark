@@ -216,7 +216,9 @@ static struct GfxDimensions gfx_prev_dimensions;
 struct XYWidthHeight gfx_current_game_window_viewport;
 struct XYWidthHeight gfx_current_native_viewport;
 float gfx_current_native_aspect = 4.f / 3.f;
+#ifndef __WIIU__
 bool gfx_framebuffers_enabled = true;
+#endif
 bool gfx_detail_textures_enabled = true;
 
 static bool game_renders_to_framebuffer;

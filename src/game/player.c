@@ -4905,6 +4905,8 @@ Gfx *playerRenderHud(Gfx *gdl)
 		gdl = bgRenderArtifacts(gdl);
 
 		if (g_Vars.currentplayer->eyespy) {
+#ifndef __WIIU__
+			// Fisheye effect rendering (PC backend only - GX2 backend doesn't support it properly)
 			if (g_Vars.currentplayer->eyespy->startuptimer60 < TICKS(50)) {
 				gdl = bviewDrawFisheye(gdl, 0xffffffff, 255, 0, g_Vars.currentplayer->eyespy->startuptimer60, g_Vars.currentplayer->eyespy->hit);
 			} else {
@@ -4922,6 +4924,7 @@ Gfx *playerRenderHud(Gfx *gdl)
 					gdl = bviewDrawFisheye(gdl, 0xffffffff, 255, 0, TICKS(50), g_Vars.currentplayer->eyespy->hit);
 				}
 			}
+#endif
 
 			gdl = bviewDrawEyespyMetrics(gdl);
 		}

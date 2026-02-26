@@ -8212,6 +8212,8 @@ void bgunTickGameplay2(void)
 	if ((g_Vars.currentplayer->devicesactive & ~g_Vars.currentplayer->devicesinhibit & DEVICE_XRAYSCANNER)
 			&& (bgunGetWeaponNum(HAND_RIGHT) != WEAPON_FARSIGHT || player->gunsightoff)) {
 		// Using normal xray scanner (not Farsight zoom)
+#ifndef __WIIU__
+		// X-ray/nightvision mode disabled on Wii U - GX2 backend doesn't support blended overlays
 		if (player->visionmode != VISIONMODE_XRAY) {
 			player->erasertime = 0;
 		} else {
@@ -8225,6 +8227,10 @@ void bgunTickGameplay2(void)
 		player->epcol_0 = 2;
 		player->epcol_1 = 0;
 		player->epcol_2 = 1;
+#else
+		// On Wii U, keep normal vision mode
+		player->visionmode = VISIONMODE_NORMAL;
+#endif
 	} else {
 		if (player->gunsightoff == 0) {
 			if (player->hands[HAND_RIGHT].gset.weaponnum == WEAPON_FARSIGHT) {

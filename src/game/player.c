@@ -2340,6 +2340,9 @@ Gfx *player0f0baf84(Gfx *gdl)
 
 Gfx *playerDrawFade(Gfx *gdl, u32 r, u32 g, u32 b, f32 frac)
 {
+#ifndef __WIIU__
+	// Screen fade/tint effect (nightvision, thermal, etc.)
+	// Disabled on Wii U - GX2 backend doesn't handle G_RM_CLD_SURF render mode correctly
 	if (frac > 0) {
 		gDPPipeSync(gdl++);
 		gDPSetCycleType(gdl++, G_CYC_1CYCLE);
@@ -2360,6 +2363,7 @@ Gfx *playerDrawFade(Gfx *gdl, u32 r, u32 g, u32 b, f32 frac)
 		gDPSetTexturePersp(gdl++, G_TP_PERSP);
 		gDPSetTextureLOD(gdl++, G_TL_LOD);
 	}
+#endif
 
 	return gdl;
 }

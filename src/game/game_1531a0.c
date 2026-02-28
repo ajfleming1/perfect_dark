@@ -2274,9 +2274,16 @@ Gfx *textRender(Gfx *gdl, s32 *x, s32 *y, char *text,
 
 	gDPPipeSync(gdl++);
 	gDPSetTextureLUT(gdl++, G_TT_IA16);
-	gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, osVirtualToPhysical(&var8007fb5c));
-	gDPLoadSync(gdl++);
-	gDPLoadTLUTCmd(gdl++, 6, 31);
+	// Use appropriate palette based on font type
+	if (chars == g_CharsNumeric) {
+		gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, osVirtualToPhysical(var8007fb3c));
+		gDPLoadSync(gdl++);
+		gDPLoadTLUTCmd(gdl++, 6, 15);
+	} else {
+		gDPSetTextureImage(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, osVirtualToPhysical(&var8007fb5c));
+		gDPLoadSync(gdl++);
+		gDPLoadTLUTCmd(gdl++, 6, 31);
+	}
 
 #if VERSION >= VERSION_JPN_FINAL
 	// Use clamp

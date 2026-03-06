@@ -12,10 +12,8 @@
 #include "../fast3d/gfx_api.h"
 #include "../fast3d/gfx_sdl.h"
 #include "../fast3d/gfx_opengl.h"
-#ifdef PLATFORM_WIIU
 #include "../fast3d/gfx_wiiu.h"
 #include "../fast3d/gfx_gx2.h"
-#endif
 
 #ifdef PLATFORM_WIIU
 #define DEFAULT_VID_WIDTH 1920
@@ -130,13 +128,19 @@ s32 videoInit(void)
 
 void videoStartFrame(void)
 {
+	sysLogPrintf(LOG_NOTE, "videoStartFrame: entering, initDone=%d", initDone);
 	if (initDone) {
+		sysLogPrintf(LOG_NOTE, "videoStartFrame: calling wmAPI->get_time");
 		startTime = wmAPI->get_time();
+		sysLogPrintf(LOG_NOTE, "videoStartFrame: calling gfx_start_frame");
 		gfx_start_frame();
+		sysLogPrintf(LOG_NOTE, "videoStartFrame: gfx_start_frame returned");
 	}
 
+	sysLogPrintf(LOG_NOTE, "videoStartFrame: calling videoGetFullscreen");
 	// Synchronize with their backend counterparts.
 	vidFullscreen = videoGetFullscreen();
+	sysLogPrintf(LOG_NOTE, "videoStartFrame: exiting");
 	vidMaximize = videoGetMaximizeWindow();
 }
 
@@ -150,6 +154,7 @@ void videoSubmitCommands(Gfx *cmds)
 
 void videoEndFrame(void)
 {
+
 	if (!initDone) {
 		return;
 	}

@@ -338,6 +338,7 @@ void sysMemFree(void *ptr)
 
 void sysSleep(const s64 hns)
 {
+  if (hns <= 0) return;
 #ifdef PLATFORM_WIN32
 	static LARGE_INTEGER li;
 	li.QuadPart = -hns;

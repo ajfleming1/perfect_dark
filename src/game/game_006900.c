@@ -9,6 +9,7 @@
 #include "lib/mtx.h"
 #include "data.h"
 #include "types.h"
+#include <math.h>
 
 /**
  * Increments from 0 to 1 over 20 seconds then snaps back to 0.
@@ -93,7 +94,9 @@ void menuTickTimers(void)
  */
 f32 menuGetSinOscFrac(f32 freq)
 {
-	return sinf((freq * g_20SecIntervalFrac + freq * g_20SecIntervalFrac) * M_PI) / 2.0f + 0.5f;
+	f32 arg = (freq * g_20SecIntervalFrac + freq * g_20SecIntervalFrac) * M_PI;
+	if (arg != arg || arg > 1000000.0f || arg < -1000000.0f) return 0.5f;
+	return sinf(arg) / 2.0f + 0.5f;
 }
 
 /**
@@ -105,7 +108,9 @@ f32 menuGetSinOscFrac(f32 freq)
  */
 f32 menuGetCosOscFrac(f32 freq)
 {
-	return cosf((freq * g_20SecIntervalFrac + freq * g_20SecIntervalFrac) * M_PI) / 2.0f + 0.5f;
+	f32 arg = (freq * g_20SecIntervalFrac + freq * g_20SecIntervalFrac) * M_PI;
+	if (arg != arg || arg > 1000000.0f || arg < -1000000.0f) return 0.5f;
+	return cosf(arg) / 2.0f + 0.5f;
 }
 
 /**

@@ -118,6 +118,10 @@ bool GX2Util::Shutdown()
 
 bool GX2Util::ConvertSurface(const GX2Surface *src, GX2Surface *dst)
 {
+    if (src->width == 0 || src->height == 0 || dst->width == 0 || dst->height == 0) {
+        return false;
+    }
+
     // Create a texture for the source
     GX2Texture texture;
     if (!CreateTextureForSurface(texture, src)) {

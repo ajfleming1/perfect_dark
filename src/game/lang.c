@@ -209,9 +209,7 @@ u32 langGetLangBankIndexFromStagenum(s32 stagenum)
 	case STAGE_MBR:           bank = LANGBANK_WAX; break;
 	case STAGE_TEST_SILO:     bank = LANGBANK_SILO; break;
 	default:
-		while (true) {
-			// empty
-		}
+		return 0;
 	}
 
 	return bank;

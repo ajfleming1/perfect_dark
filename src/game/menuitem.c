@@ -412,7 +412,9 @@ Gfx *menuitemListRender(Gfx *gdl, struct menurendercontext *context)
 		}
 
 		// Iterate the options to be drawn
-		while (!done2) {
+		s32 loop_failsafe = 0;
+		while (!done2 && loop_failsafe < 1000) {
+			loop_failsafe++;
 			colour = MIXCOLOUR(context->dialog, item_unfocused);
 
 			if (context->dialog->dimmed) {
@@ -1457,7 +1459,9 @@ bool menuitemKeyboardTick(struct menuitem *item, struct menuinputs *inputs, u32 
 		// across multiple columns so the loop will run again until the column
 		// number is valid.
 		if (inputs->leftright != 0) {
+			s32 kb_failsafe = 0;
 			do {
+				kb_failsafe++;
 				kb->col += inputs->leftright;
 
 				if (kb->col < 0) {
@@ -1467,7 +1471,7 @@ bool menuitemKeyboardTick(struct menuitem *item, struct menuinputs *inputs, u32 
 				if (kb->col > 9) {
 					kb->col = 0;
 				}
-			} while (kb->row == 4 && kb->col != 0 && kb->col != 2 && kb->col != 5 && kb->col != 8);
+			} while (kb_failsafe < 20 && kb->row == 4 && kb->col != 0 && kb->col != 2 && kb->col != 5 && kb->col != 8);
 		}
 
 		// Handle up/down movement
@@ -2814,7 +2818,9 @@ bool menuitemCarouselTick(struct menuitem *item, struct menuinputs *inputs, u32 
 
 				index = data.carousel.value;
 
-				while (!done) {
+				s32 carousel_failsafe = 0;
+				while (!done && carousel_failsafe < 1000) {
+					carousel_failsafe++;
 					index = index + inputs->leftright;
 
 					if (index >= numoptions) {

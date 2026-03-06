@@ -4469,7 +4469,9 @@ MenuDialogHandlerResult soloMenuDialogPauseStatus(s32 operation, struct menudial
 
 		g_Briefing.briefingtextnum = L_MISC_042; // "No briefing for this mission"
 
-		while (briefing) {
+		s32 briefing_failsafe = 0;
+		while (briefing && briefing_failsafe < 100) {
+			briefing_failsafe++;
 			if (briefing->type == BRIEFINGTYPE_TEXT_PA) {
 				g_Briefing.briefingtextnum = briefing->text;
 			}

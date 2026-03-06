@@ -1530,7 +1530,9 @@ Gfx *text0f1552d4(Gfx *gdl, f32 x, f32 y, f32 widthscale, f32 heightscale,
 
 #if VERSION >= VERSION_PAL_BETA
 	if (text != NULL) {
-		while (*text != '\0') {
+		s32 text_failsafe = 0;
+		while (*text != '\0' && text_failsafe < 2000) {
+			text_failsafe++;
 			if (*text == ' ') {
 				relx = relx + var8007fad0 * 5;
 				prevchar = 'H';
@@ -1561,7 +1563,9 @@ Gfx *text0f1552d4(Gfx *gdl, f32 x, f32 y, f32 widthscale, f32 heightscale,
 	}
 #else
 	if (text != NULL) {
-		while (*text != '\0') {
+		s32 text_failsafe = 0;
+		while (*text != '\0' && text_failsafe < 2000) {
+			text_failsafe++;
 			if (*text == ' ') {
 				prevchar = 'H';
 				text += 1;
@@ -2035,7 +2039,9 @@ Gfx *textRenderProjected(Gfx *gdl, s32 *x, s32 *y, char *text, struct fontchar *
 
 #if VERSION >= VERSION_PAL_BETA
 	if (text != NULL) {
-		while (*text != '\0') {
+		s32 text_failsafe = 0;
+		while (*text != '\0' && text_failsafe < 2000) {
+			text_failsafe++;
 			if (*text == ' ') {
 				*x += spb0 * 5;
 				prevchar = 'H';
@@ -2062,7 +2068,9 @@ Gfx *textRenderProjected(Gfx *gdl, s32 *x, s32 *y, char *text, struct fontchar *
 	}
 #else
 	if (text != NULL) {
-		while (*text != '\0') {
+		s32 text_failsafe = 0;
+		while (*text != '\0' && text_failsafe < 2000) {
+			text_failsafe++;
 			if (*text == ' ') {
 				prevchar = 'H';
 				*x += spb0 * 5;
@@ -2312,7 +2320,9 @@ Gfx *textRender(Gfx *gdl, s32 *x, s32 *y, char *text,
 	g_Blend.colour44 = arg6;
 
 #if VERSION >= VERSION_PAL_BETA
-	while (*text != '\0') {
+	s32 text_failsafe = 0;
+	while (*text != '\0' && text_failsafe < 2000) {
+		text_failsafe++;
 		if (*text == ' ') {
 			*x += var8007fad0 * 5;
 			prevchar = 'H';
@@ -2333,7 +2343,9 @@ Gfx *textRender(Gfx *gdl, s32 *x, s32 *y, char *text,
 		}
 	}
 #else
-	while (*text != '\0') {
+	s32 text_failsafe = 0;
+	while (*text != '\0' && text_failsafe < 2000) {
+		text_failsafe++;
 		if (*text == ' ') {
 			*x += var8007fad0 * 5;
 			prevchar = 'H';
@@ -2582,7 +2594,9 @@ void textMeasure(s32 *textheight, s32 *textwidth, char *text, struct fontchar *f
 #endif
 
 	if (text) {
-		while (*text != '\0') {
+		s32 text_failsafe = 0;
+		while (*text != '\0' && text_failsafe < 2000) {
+			text_failsafe++;
 			if (*text == ' ') {
 				// Space
 				if (text[1] != '\n') {
@@ -3034,14 +3048,18 @@ void textWrap(s32 wrapwidth, char *src, char *dst, struct fontchar *chars, struc
 	s32 isspace; // 70
 	u32 stack;
 
-	while (more == true) {
+	s32 more_failsafe = 0;
+	while (more == true && more_failsafe < 1000) {
+		more_failsafe++;
 		wordlen = 0;
 		wordwidth = 0;
 		sp94 = 0;
 		isspace = false;
 		isvalidchar = true;
 
-		while (isvalidchar) {
+		s32 inner_failsafe = 0;
+		while (isvalidchar && inner_failsafe < 1000) {
+			inner_failsafe++;
 			u16 codepoint = 0;
 			bool multibyte = false;
 			s32 charwidth = 0;
@@ -3120,7 +3138,7 @@ void textWrap(s32 wrapwidth, char *src, char *dst, struct fontchar *chars, struc
 				}
 			}
 
-			if (isvalidchar) {
+			if (isvalidchar && wordlen < 30) {
 				curword[wordlen] = *src;
 				src++;
 				wordlen++;
@@ -3132,6 +3150,9 @@ void textWrap(s32 wrapwidth, char *src, char *dst, struct fontchar *chars, struc
 				}
 
 				sp94 += charwidth;
+			} else if (isvalidchar) {
+				// Prevent overflow
+				isvalidchar = false;
 			}
 		}
 
@@ -3234,13 +3255,17 @@ void textWrap(s32 wrapwidth, char *src, char *dst, struct fontchar *chars, struc
 	u32 stack;
 	char curword[32];
 
-	while (more == true) {
+	s32 more_failsafe = 0;
+	while (more == true && more_failsafe < 1000) {
+		more_failsafe++;
 		// Load the next word
 		wordwidth = 0;
 		wordlen = 0;
 		v1 = 0;
 
-		while (*src > ' ') {
+		s32 inner_failsafe = 0;
+		while (*src > ' ' && wordlen < 30 && inner_failsafe < 1000) {
+			inner_failsafe++;
 			curword[wordlen] = *src;
 			v1 += chars[*src - 0x21].width;
 			src++;

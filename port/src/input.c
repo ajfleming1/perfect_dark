@@ -421,15 +421,13 @@ static inline void inputCloseAllControllers(void)
 static inline s32 inputTryController(const s32 cidx, const s32 jidx)
 {
 #ifdef __WIIU__
-	const char* name = SDL_JoystickNameForIndex(jidx);
-	if (name && strstr(name, "Wii U Gamepad")) {
-		if (cidx == 0) {
-			sysLogPrintf(LOG_NOTE, "Input: Skipping SDL open for GamePad (using direct read)");
-			connectedMask |= (1 << cidx);
-			return 1;
-		}
-		return 0;
+	// On Wii U, we use VPAD directly for the gamepad, not SDL
+	if (cidx == 0) {
+		sysLogPrintf(LOG_NOTE, "Input: Using Wii U GamePad (direct VPAD read)");
+		connectedMask |= (1 << cidx);
+		return 1;
 	}
+	return 0;
 #endif
 
 	if (!pads[cidx]) {
@@ -444,6 +442,7 @@ static inline s32 inputTryController(const s32 cidx, const s32 jidx)
 
 static inline void inputInitAllControllers(void)
 {
+#ifndef __WIIU__
 	SDL_GameControllerUpdate();
 
 	numJoysticks = SDL_NumJoysticks();
@@ -483,6 +482,11 @@ static inline void inputInitAllControllers(void)
 	if (overrideMask) {
 		connectedMask = overrideMask;
 	}
+#else
+	// On Wii U, we use VPAD directly, not SDL joysticks
+	numJoysticks = 0;
+	connectedMask = 1; // always report first controller as connected
+#endif
 }
 
 static int inputEventFilter(void *data, SDL_Event *event)
@@ -696,6 +700,13 @@ static inline void inputLoadBinds(void)
 
 s32 inputInit(void)
 {
+#ifndef __WIIU__
+	// Initialize base SDL system first (required for subsystems to work properly)
+	if (!SDL_WasInit(SDL_INIT_EVENTS)) {
+		SDL_Init(SDL_INIT_EVENTS);
+	}
+#endif
+
 	// Set SDL hints before initializing the controller subsystem.
 	if (useHIDAPI) {
 #if SDL_VERSION_ATLEAST(2, 0, 12)
@@ -737,9 +748,11 @@ s32 inputInit(void)
 #endif
 	}
 
+#ifndef __WIIU__
 	if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC)) {
 		SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
 	}
+#endif
 
 	// try to load controller db from an external file in the save folder
 	if (fsFileSize("$S/" CONTROLLERDB_FNAME)) {
@@ -1562,7 +1575,7 @@ void inputReload(void)
 	inputInitAllControllers();
 }
 
-PD_CONSTRUCTOR static void inputConfigInit(void)
+static void inputConfigInit_disabled(void)
 {
 	configRegisterInt("Input.MouseEnabled", &mouseEnabled, 0, 1);
 	configRegisterInt("Input.MouseLockMode", &mouseLockMode, MLOCK_OFF, MLOCK_AUTO);

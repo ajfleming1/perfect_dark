@@ -641,8 +641,8 @@ void func0f001c0c(void)
 	}
 
 	if (g_Vars.stagenum == STAGE_EXTRACTION || g_Vars.stagenum == STAGE_DEFECTION) {
-		var80061438[98] = false;
-		var80061438[100] = false;
+		if (g_NumPortals > 98) var80061438[98] = false;
+		if (g_NumPortals > 100) var80061438[100] = false;
 	}
 
 	func0f00215c(sp48);

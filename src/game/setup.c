@@ -1493,9 +1493,7 @@ static void setupMarkLiftDoors()
 
 void setupCreateProps(s32 stagenum)
 {
-	sysLogPrintf(LOG_NOTE, "setupCreateProps: entry");
 	s32 withchrs = !argFindByPrefix(1, "-nochr") && !argFindByPrefix(1, "-noprop");
-	sysLogPrintf(LOG_NOTE, "setupCreateProps: after args");
 	s32 withobjs = !argFindByPrefix(1, "-noobj") && !argFindByPrefix(1, "-noprop");
 	s32 withhovercars;
 	s32 escstepx;
@@ -1518,55 +1516,38 @@ void setupCreateProps(s32 stagenum)
 
 	g_Briefing.briefingtextnum = L_MISC_042; // "No briefing for this mission"
 
-	sysLogPrintf(LOG_NOTE, "setupCreateProps: stagenum=%d", stagenum);
-
 	if (stagenum < STAGE_TITLE) {
-		sysLogPrintf(LOG_NOTE, "setupCreateProps: padfiledata=%p", (void*)g_StageSetup.padfiledata);
 		if (g_StageSetup.padfiledata) {
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: calling setupPreparePads");
 			setupPreparePads();
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: setupPreparePads done");
 		}
 
-		sysLogPrintf(LOG_NOTE, "setupCreateProps: calling setupLoadWaypoints");
 		setupLoadWaypoints();
-		sysLogPrintf(LOG_NOTE, "setupCreateProps: setupLoadWaypoints done");
 
 		if (withchrs) {
 			s32 numchrs = 0;
 
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: calling setupCountCommandType(OBJTYPE_CHR)");
 			numchrs += setupCountCommandType(OBJTYPE_CHR);
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: setupCountCommandType done, numchrs=%d", numchrs);
 
 			if (g_Vars.normmplayerisrunning == false
 					&& g_MissionConfig.iscoop
 					&& g_Vars.numaibuddies > 0) {
-				sysLogPrintf(LOG_NOTE, "setupCreateProps: adding buddy numchrs");
 				numchrs += g_Vars.numaibuddies;
 			}
 
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: calling chrmgrConfigure");
 			chrmgrConfigure(numchrs);
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: chrmgrConfigure done");
 		} else {
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: calling chrmgrConfigure(0)");
 			chrmgrConfigure(0);
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: chrmgrConfigure done");
 		}
 
 		for (j = 0; j < PLAYERCOUNT(); j++) {
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: invInit loop j=%d", j);
 			setCurrentPlayerNum(j);
 			invInit(setupCountCommandType(OBJTYPE_LINKGUNS));
 		}
-		sysLogPrintf(LOG_NOTE, "setupCreateProps: invInit loop done");
 
 		if (g_StageSetup.props) {
 			u32 diffflag = 0;
 			s32 index;
 
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: props section start");
 			diffflag |= 1 << (lvGetDifficulty() + 4);
 
 			if (g_Vars.mplayerisrunning) {
@@ -1579,27 +1560,18 @@ void setupCreateProps(s32 stagenum)
 				}
 			}
 
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: calling botmgrRemoveAll");
 			botmgrRemoveAll();
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: botmgrRemoveAll done");
 			index = 0;
 
             bool nodoors = (g_MpSetup.options & MPOPTION_NODOORS) != 0;
             
 			if (nodoors) {
-				sysLogPrintf(LOG_NOTE, "setupCreateProps: calling setupMarkLiftDoors");
 				setupMarkLiftDoors();
-				sysLogPrintf(LOG_NOTE, "setupCreateProps: setupMarkLiftDoors done");
 			}
 
 			obj = (struct defaultobj *)g_StageSetup.props;
-			sysLogPrintf(LOG_NOTE, "setupCreateProps: entering obj loop");
 
 			while (obj->type != OBJTYPE_END) {
-				// sysLogPrintf(LOG_NOTE, "setupCreateProps: obj loop type=%d index=%d", obj->type, index);
-				if (index < 5 || obj->type == OBJTYPE_CHR) {
-					sysLogPrintf(LOG_NOTE, "setupCreateProps: obj loop type=%d index=%d", obj->type, index);
-				}
 				switch (obj->type) {
 				case OBJTYPE_GRENADEPROB:
 					{

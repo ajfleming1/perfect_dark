@@ -45,10 +45,11 @@
 #include "types.h"
 #ifndef PLATFORM_N64
 #include "preprocess.h"
-#include "system.h"
 #include "video.h"
 #include "platform.h"
+#include "system.h"
 #endif
+
 
 #define BGCMD_END                               0x00
 #define BGCMD_PUSH                              0x01
@@ -1497,25 +1498,19 @@ void bgReset(s32 stagenum)
 #endif
 
 	g_StageIndex = bgGetStageIndex(stagenum);
-	sysLogPrintf(LOG_NOTE, "bgReset: stagenum=%d g_StageIndex=%d", stagenum, g_StageIndex);
-
 	if (g_StageIndex < 0) {
 		g_StageIndex = 0;
 	}
 
 	// Copy section 1 header to stack and parse into variables
 	header = (u8 *)ALIGN16((uintptr_t)headerbuffer);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile header bgfileid=%d", (int)g_Stages[g_StageIndex].bgfileid);
 	bgLoadFile(header, 0, 0x40);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile header done");
 #ifndef PLATFORM_N64
 	preprocessBgSection1Header(header, 0x40);
-	sysLogPrintf(LOG_NOTE, "bgReset: preprocessBgSection1Header done");
 #endif
 	inflatedsize = *(u32 *)&header[0];
 	section1compsize = *(u32 *)&header[4];
 	primcompsize = *(u32 *)&header[8];
-	sysLogPrintf(LOG_NOTE, "bgReset: inflatedsize=%u section1compsize=%u primcompsize=%u", inflatedsize, section1compsize, primcompsize);
 	var8007fc54 = inflatedsize - primcompsize;
 	var8007fc54 -= 0xc;
 
@@ -1524,12 +1519,10 @@ void bgReset(s32 stagenum)
 #endif
 
 	inflatedsize = ALIGN16(inflatedsize);
-	sysLogPrintf(LOG_NOTE, "bgReset: mempAlloc primary inflatedsize=%u", inflatedsize);
 
 	// Allocate space for the primary bg data
 	// An extra 0x8000 or so is given as temporary scratch space
 	g_BgPrimaryData = mempAlloc(ALIGN16(inflatedsize + 0x8010), MEMPOOL_STAGE);
-	sysLogPrintf(LOG_NOTE, "bgReset: g_BgPrimaryData=%p", (void*)g_BgPrimaryData);
 
 	// Set up pointer to scratch space
 	scratch = (uintptr_t) g_BgPrimaryData + inflatedsize - primcompsize;
@@ -1538,41 +1531,30 @@ void bgReset(s32 stagenum)
 	g_LoadType = LOADTYPE_BG;
 
 	// Copy section 1 header + compressed primary to scratch space
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section1 to scratch=%p len=%u", (void*)scratch, ALIGN16(primcompsize + 15));
 	bgLoadFile((u8 *) scratch, 0, ALIGN16(primcompsize + 15));
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section1 done");
 
 	// Inflate primary data to the start of the buffer
 	scratch += 0xc;
-	sysLogPrintf(LOG_NOTE, "bgReset: bgInflate primary primcompsize=%u", primcompsize);
 	bgInflate((u8 *) scratch, g_BgPrimaryData, primcompsize);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgInflate primary done");
 
 #ifndef PLATFORM_N64
-	sysLogPrintf(LOG_NOTE, "bgReset: preprocessBgSection1 inflatedsize=%u", inflatedsize);
 	preprocessBgSection1(g_BgPrimaryData, inflatedsize, 0x0f000000);
-	sysLogPrintf(LOG_NOTE, "bgReset: preprocessBgSection1 done");
 #endif
 
 	// Shrink the allocation (ie. free the scratch space)
 	mempRealloc(g_BgPrimaryData, inflatedsize, MEMPOOL_STAGE);
-	sysLogPrintf(LOG_NOTE, "bgReset: mempRealloc primary done");
 
 	// Load the section 2 header
 	section2start = section1compsize + 0xc;
 
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section2 header section2start=%u", section2start);
 	bgLoadFile(header, section2start, 0x40);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section2 header done");
 #ifndef PLATFORM_N64
 	preprocessBgSection2Header(header, 0x40);
-	sysLogPrintf(LOG_NOTE, "bgReset: preprocessBgSection2Header done");
 #endif
 
 	inflatedsize = (*(u16 *) &header[0] & 0x7fff) - 1;
 	section2compsize = *(u16 *) &header[2];
 	inflatedsize = (inflatedsize | 0xf) + 1;
-	sysLogPrintf(LOG_NOTE, "bgReset: section2 inflatedsize=%u section2compsize=%u", inflatedsize, section2compsize);
 
 	// Allocate space for the section 2 data (texture ID list).
 	// This is the cause and fix for the Challenge 7 memory corruption bug in
@@ -1588,39 +1570,29 @@ void bgReset(s32 stagenum)
 	section2 = mempAlloc(inflatedsize + 0x800, MEMPOOL_STAGE);
 	scratch = (uintptr_t) section2 + 0x800;
 #endif
-	sysLogPrintf(LOG_NOTE, "bgReset: section2=%p scratch=%p", (void*)section2, (void*)scratch);
 
 	// Load compressed data from ROM to scratch
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section2 data");
 	bgLoadFile((u8 *) scratch, section2start + 4, ((section2compsize - 1) | 0xf) + 1);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgLoadFile section2 done");
 
 	// Inflate section 2 to the start of the buffer
-	sysLogPrintf(LOG_NOTE, "bgReset: bgInflate section2");
 	bgInflate((u8 *) scratch, (u8 *) section2, section2compsize);
-	sysLogPrintf(LOG_NOTE, "bgReset: bgInflate section2 done");
 
 	// Iterate texture IDs and ensure they're loaded
 	inflatedsize = (*(u16 *) &header[0] & 0x7fff) >> 1;
-	sysLogPrintf(LOG_NOTE, "bgReset: texture count inflatedsize=%u", inflatedsize);
 
 #ifndef PLATFORM_N64
 	preprocessBgSection2((u8 *)section2, inflatedsize);
-	sysLogPrintf(LOG_NOTE, "bgReset: preprocessBgSection2 done");
 #endif
 
 	for (i = 0; i ^ inflatedsize; i++) {
 		u32 texid = section2[i] & 0xffff;
-		sysLogPrintf(LOG_NOTE, "bgReset: texLoad i=%d texid=%u", i, texid);
 		texLoadFromTextureNum(texid, NULL);
 	}
-	sysLogPrintf(LOG_NOTE, "bgReset: texture loop done");
 
 	if (1);
 
 	// Free section 2
 	mempRealloc(section2, 0, MEMPOOL_STAGE);
-	sysLogPrintf(LOG_NOTE, "bgReset: mempRealloc section2 done");
 
 	g_BgSection3 = section2start + section2compsize + 4;
 
@@ -1641,13 +1613,10 @@ void bgReset(s32 stagenum)
 	}
 #endif
 
-	sysLogPrintf(LOG_NOTE, "bgReset: reading var800a4920 from g_BgPrimaryData=%p", (void*)g_BgPrimaryData);
 	var800a4920 = *(u32 *)g_BgPrimaryData;
-	sysLogPrintf(LOG_NOTE, "bgReset: var800a4920=%u", var800a4920);
 
 	if (var800a4920 == 0) {
 		g_BgPrimaryData2 = (uintptr_t*)g_BgPrimaryData;
-		sysLogPrintf(LOG_NOTE, "bgReset: g_BgPrimaryData2[1]=%lu g_BgPrimaryData2[2]=%lu", (unsigned long)g_BgPrimaryData2[1], (unsigned long)g_BgPrimaryData2[2]);
 		g_BgRooms = (struct bgroom *)(g_BgPrimaryData2[1] + g_BgPrimaryData - 0x0f000000);
 		goto foo; foo:;
 		g_Vars.roomcount = 0;
@@ -1655,7 +1624,6 @@ void bgReset(s32 stagenum)
 		for (j = 1; g_BgRooms[j].unk00 != 0; j++) {
 			g_Vars.roomcount++;
 		}
-		sysLogPrintf(LOG_NOTE, "bgReset: roomcount=%d", g_Vars.roomcount);
 
 		g_BgPortals = (struct bgportal *)(g_BgPrimaryData2[2] + g_BgPrimaryData - 0x0f000000);
 
@@ -1677,7 +1645,6 @@ void bgReset(s32 stagenum)
 			g_BgStanThings = (f32 *)(g_BgPrimaryData2[5] + g_BgPrimaryData - 0x0f000000);
 		}
 	}
-	sysLogPrintf(LOG_NOTE, "bgReset: done");
 }
 
 void bgBuildTables(s32 stagenum)
@@ -3359,6 +3326,7 @@ Gfx *bgRenderRoomXlu(Gfx *gdl, s32 roomnum)
 		if (g_Rooms[roomnum].gfxdata->xlublocks == NULL) {
 			return gdl;
 		}
+
 
 		roomHighlight(roomnum);
 

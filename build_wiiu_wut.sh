@@ -36,7 +36,7 @@ make -j$(nproc)
 # Auto-copy to SD card
 echo "Copying build to SD card..."
 # MSYS2 path: use /d/ instead of D:/
-SD_DEST="/d/wiiu/apps/perfectdark"
+SD_DEST="/e/wiiu/apps/perfectdark"
 
 # Create destination directory if it doesn't exist
 mkdir -p "$SD_DEST"

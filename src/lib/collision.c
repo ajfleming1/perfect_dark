@@ -842,6 +842,8 @@ void cdGetPropsOnPlatform(struct prop *platform, s16 *propnums, s32 maxlen)
 						geo = (struct geo *)((uintptr_t)geo + sizeof(struct geoblock));
 					} else if (geo->type == GEOTYPE_CYL) {
 						geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+					} else {
+						break;
 					}
 				}
 
@@ -888,6 +890,8 @@ void cdSetPropYBounds(struct prop *prop, f32 ymax, f32 ymin)
 				cyl->ymax = ymax;
 				cyl->ymin = ymin;
 				geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+			} else {
+				break;
 			}
 		}
 	}
@@ -956,6 +960,9 @@ bool cd00026a04(struct coord *pos, u8 *start, u8 *end, u16 geoflags, s32 room, s
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geoblock));
 		} else if (geo->type == GEOTYPE_CYL) {
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+		} else {
+			// Unknown geo type - break to avoid infinite loop
+			break;
 		}
 	}
 
@@ -1258,6 +1265,8 @@ void cdCollectGeoForCylFromList(struct coord *pos, f32 radius, u8 *start, u8 *en
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + 0x18);
+		} else {
+			break;
 		}
 	}
 }
@@ -1586,6 +1595,8 @@ void cdCollectGeoForCylMoveFromList(u8 *start, u8 *end, struct coord *pos, f32 r
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+		} else {
+			break;
 		}
 	}
 }
@@ -2969,6 +2980,8 @@ bool cdTestAToBGeolist(u8 *start, u8 *end, struct coord *arg2, struct coord *arg
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+		} else {
+			break;
 		}
 	}
 
@@ -3331,6 +3344,8 @@ bool cdExamAToBGeolist(u8 *start, u8 *end, struct coord *arg2, struct coord *arg
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+		} else {
+			break;
 		}
 	}
 
@@ -3795,6 +3810,8 @@ s32 cdTestBlockOverlapsGeolist(u8 *start, u8 *end, struct geoblock *block, u16 g
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + 0x18);
+		} else {
+			break;
 		}
 	}
 
@@ -4059,6 +4076,8 @@ bool cd0002ed30(u8 *start, u8 *end, struct geoblock *block, s32 numvertices, str
 			}
 
 			geo = (struct geo *)((uintptr_t)geo + sizeof(struct geocyl));
+		} else {
+			break;
 		}
 	}
 

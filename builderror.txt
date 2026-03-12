@@ -1,0 +1,52 @@
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c: In function 'bgLoadRoom':
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c:2839:22: error: implicit declaration of function
+sysMemAlloc' [-Wimplicit-function-declaration]
+ 2839 |         allocation = sysMemAlloc(alloclen);
+      |                      ^~~~~~~~~~~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c:2839:20: error: assignment to 'u8 *' {aka 'unsigne
+d char *'} from 'int' makes pointer from integer without a cast [-Wint-conversion]
+ 2839 |         allocation = sysMemAlloc(alloclen);
+      |                    ^
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c: In function 'bgUnloadRoom':
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c:3082:17: error: implicit declaration of function
+sysMemFree' [-Wimplicit-function-declaration]
+ 3082 |                 sysMemFree(g_Rooms[roomnum].vtxbatches);
+      |                 ^~~~~~~~~~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c: In function 'bgRenderRoomPass':
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c:3231:24: warning: comparison between pointer and i
+nteger
+ 3231 |                 if (v0 != NULL) {
+      |                        ^~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c: In function 'bgFindRoomVtxBatches':
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/bg.c:3468:33: error: assignment to 'struct vtxbatch *'
+from 'int' makes pointer from integer without a cast [-Wint-conversion]
+ 3468 |                         batches = sysMemAlloc((batchindex * sizeof(struct vtxbatch) + 0xf) & ~0xf);
+      |                                 ^
+[ 34%] Building C object CMakeFiles/pd.dir/src/game/body.o
+[ 34%] Building C object CMakeFiles/pd.dir/src/game/bodyinit.o
+[ 34%] Building C object CMakeFiles/pd.dir/src/game/bodyreset.o
+[ 35%] Building C object CMakeFiles/pd.dir/src/game/bondbike.o
+make[2]: *** [CMakeFiles/pd.dir/build.make:163: CMakeFiles/pd.dir/src/game/bg.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/activemenu.c: In function 'amRender':
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/activemenu.c:1429:76: warning: 'mpchrnum' may be used u
+ninitialized [-Wmaybe-uninitialized]
+ 1429 |                                                 s32 botcmd = g_MpAllChrPtrs[mpchrnum]->aibot->command
+;
+      |                                                              ~~~~~~~~~~~~~~^~~~~~~~~~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/activemenu.c:1249:13: note: 'mpchrnum' was declared her
+e
+ 1249 |         s32 mpchrnum;
+      |             ^~~~~~~~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/activemenu.c:1477:73: warning: 'row' may be used uninit
+ialized [-Wmaybe-uninitialized]
+ 1477 |                 if (g_AmMenus[g_AmIndex].screenindex < 2 || column != 1 || row != 1) {
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+C:/Users/andre/Desktop/two-ship/perfect_dark/src/game/activemenu.c:1251:13: note: 'row' was declared here
+ 1251 |         s16 row;
+      |             ^~~
+make[1]: *** [CMakeFiles/Makefile2:125: CMakeFiles/pd.dir/all] Error 2
+make: *** [Makefile:91: all] Error 2
+Copying build to SD card...
+Build complete! App is at: /e/wiiu/apps/perfectdark
+

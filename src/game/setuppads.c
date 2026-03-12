@@ -1,4 +1,5 @@
 #include <ultra64.h>
+#include <string.h>
 #include "constants.h"
 #include "game/bondhead.h"
 #include "game/bg.h"
@@ -12,6 +13,19 @@
 #include "data.h"
 #include "types.h"
 #include "platform.h"
+
+// Helpers for unaligned access (PPC alignment fault fix)
+static inline u32 readU32Ua(const void *ptr)
+{
+	u32 val;
+	memcpy(&val, ptr, sizeof(u32));
+	return val;
+}
+
+static inline void writeU32Ua(void *ptr, u32 val)
+{
+	memcpy(ptr, &val, sizeof(u32));
+}
 
 /**
  * The function assumes that a pad file's data has been loaded from the ROM
@@ -28,7 +42,6 @@
  */
 void setupPreparePads(void)
 {
-	struct packedpad *packedpad;
 	RoomNum *roomsptr;
 	s32 padnum;
 	s32 numpads;
@@ -50,12 +63,22 @@ void setupPreparePads(void)
 	numpads = g_PadsFile->numpads;
 
 	for (; padnum < numpads; padnum++) {
+		u8 *padptr;
+		u32 headerval;
+		s32 padroom;
+
 		offset = g_PadOffsets[padnum];
-		packedpad = (struct packedpad *) &g_StageSetup.padfiledata[offset];
+		padptr = &g_StageSetup.padfiledata[offset];
+
 		padUnpack(padnum, PADFIELD_POS | PADFIELD_BBOX, &pad);
 
+		// Read header with unaligned-safe access
+		headerval = readU32Ua(padptr);
+		// Extract room: bits [13:4] as signed
+		padroom = (s32)(headerval << 18) >> 22;
+
 		// If room is negative (ie. not specified)
-		if (packedpad->room < 0) {
+		if (padroom < 0) {
 			roomsptr = NULL;
 			bgFindRoomsByPos(&pad.pos, inrooms, aboverooms, 20, NULL);
 
@@ -68,17 +91,20 @@ void setupPreparePads(void)
 			if (roomsptr != NULL) {
 				roomnum = cdFindFloorRoomAtPos(&pad.pos, roomsptr);
 
-				if (roomnum > 0) {
-					packedpad->room = roomnum;
-				} else {
-					packedpad->room = roomsptr[0];
+				if (roomnum <= 0) {
+					roomnum = roomsptr[0];
 				}
+
+				// Write room back into packed header using unaligned-safe access
+				// Room is bits [13:4], mask = 0x3FF << 4 = 0x3FF0
+				headerval = (headerval & ~0x3FF0u) | ((roomnum & 0x3FF) << 4);
+				writeU32Ua(padptr, headerval);
 			}
 		}
 
 		// Scale the bbox by 1 and save it back into the packed pad data.
 		// Yeah, this is effectively doing nothing.
-		if ((*(u32 *) packedpad >> 14) & PADFLAG_HASBBOXDATA) {
+		if ((headerval >> 14) & PADFLAG_HASBBOXDATA) {
 			f32 scale = 1;
 
 			pad.bbox.xmin *= scale;

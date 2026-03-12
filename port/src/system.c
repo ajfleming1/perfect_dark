@@ -104,6 +104,12 @@ void sysInit(void)
 	if (sysArgCheck("--log")) {
 		sysLogSetPath(LOG_FNAME);
 	}
+#ifdef PLATFORM_WIIU
+	// Force-enable file logging for GPU hang diagnostics
+	if (!sysLogIsOpen()) {
+		sysLogSetPath("pd_debug.log");
+	}
+#endif
 
 #ifdef VERSION_HASH
 	sysLogPrintf(LOG_NOTE, "version: " VERSION_BRANCH " " VERSION_HASH " (" VERSION_TARGET ")");
@@ -179,6 +185,9 @@ s32 sysLogIsOpen(void)
 	return (logPath[0] != '\0');
 }
 
+static FILE *g_LogFile = NULL;
+static s32 g_LogWriteCount = 0;
+
 void sysLogPrintf(s32 level, const char *fmt, ...)
 {
 	static const char *prefix[3] = {
@@ -193,10 +202,12 @@ void sysLogPrintf(s32 level, const char *fmt, ...)
 	va_end(ap);
 
 	if (logPath[0]) {
-		FILE *f = fopen(logPath, "ab");
-		if (f) {
-			fprintf(f, "%s%s\n", prefix[level], logmsg);
-			fclose(f);
+		if (!g_LogFile) {
+			g_LogFile = fopen(logPath, "ab");
+		}
+		if (g_LogFile) {
+			fprintf(g_LogFile, "%s%s\n", prefix[level], logmsg);
+			fflush(g_LogFile);
 		}
 	}
 

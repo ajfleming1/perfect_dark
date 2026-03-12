@@ -41,12 +41,20 @@ struct n64_waygroup {
 	s32 step;
 };
 
+static u32 alignTo4(u32 pos)
+{
+	return (pos + 3) & ~3u;
+}
+
 static u32 convertPads(u8 *dst, u32 dstpos, u8 *src, u32 srcpos, int num_pads)
 {
 	u16 *src_offsets = (u16 *) &src[srcpos];
 	u16 *dst_offsets = (u16 *) &dst[dstpos];
 
 	dstpos += num_pads * sizeof(u16);
+
+	// Align pad data to 4 bytes (PPC requires aligned float/u32 access)
+	dstpos = alignTo4(dstpos);
 
 	for (int i = 0; i < num_pads; i++) {
 		srcpos = PD_BE16(src_offsets[i]);
@@ -258,15 +266,18 @@ static u32 convertPadsFile(u8 *dst, u8 *src)
 	// Pads
 	dstpos = convertPads(dst, dstpos, src, sizeof(struct n64_header), num_pads);
 
-	// Waypoints
+	// Waypoints (align to 4 bytes for PPC)
+	dstpos = alignTo4(dstpos);
 	host_header->ptr_waypoints = (dstpos);
 	dstpos = convertWayPoints(dst, dstpos, src, PD_BE32(n64_header->ptr_waypoints));
 
-	// Waygroups
+	// Waygroups (align to 4 bytes for PPC)
+	dstpos = alignTo4(dstpos);
 	host_header->ptr_waygroups = (dstpos);
 	dstpos = convertWayGroups(dst, dstpos, src, PD_BE32(n64_header->ptr_waygroups));
 
-	// Cover
+	// Cover (align to 4 bytes for PPC)
+	dstpos = alignTo4(dstpos);
 	host_header->ptr_cover = (dstpos);
 	dstpos = convertCover(dst, dstpos, src, PD_BE32(n64_header->ptr_cover), num_covers);
 

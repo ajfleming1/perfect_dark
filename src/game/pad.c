@@ -1,9 +1,34 @@
 #include <ultra64.h>
+#include <string.h>
 #include "constants.h"
 #include "game/pad.h"
 #include "bss.h"
 #include "data.h"
 #include "types.h"
+
+// Helpers for unaligned memory access (PPC alignment fault fix)
+static inline f32 readF32Unaligned(const void *ptr)
+{
+	f32 val;
+	memcpy(&val, ptr, sizeof(f32));
+	return val;
+}
+
+// Helper to read s16 from potentially unaligned memory
+static inline s16 readS16Unaligned(const void *ptr)
+{
+	s16 val;
+	memcpy(&val, ptr, sizeof(s16));
+	return val;
+}
+
+// Helper to read u32 from potentially unaligned memory
+static inline u32 readU32Unaligned(const void *ptr)
+{
+	u32 val;
+	memcpy(&val, ptr, sizeof(u32));
+	return val;
+}
 
 struct padsfileheader *g_PadsFile;
 u16 *g_PadOffsets;
@@ -18,96 +43,93 @@ u16 *g_SpecialCoverNums;
 void padUnpack(s32 padnum, u32 fields, struct pad *pad)
 {
 	s32 offset;
-	u32 *header;
-	f32 *fbuffer;
+	u32 headerval;
 	u8 *ptr;
 
 	if (pad);
 
 	offset = g_PadOffsets[padnum];
 	ptr = (u8 *) &g_StageSetup.padfiledata[offset];
-	header = (u32 *) ptr;
+
+	// Use unaligned read for header - pad data may not be 4-byte aligned
+	headerval = readU32Unaligned(ptr);
 
 	// Header format:
 	// flags, room and liftnum
 	// ffffffff ffffffff ffrrrrrr rrrrllll
 
 	if (fields & PADFIELD_ROOM) {
-		pad->room = (s32)(*header << 18) >> 22;
+		pad->room = (s32)(headerval << 18) >> 22;
 	}
 
 	if (fields & PADFIELD_LIFT) {
-		pad->liftnum = *header & 0x0000000f;
+		pad->liftnum = headerval & 0x0000000f;
 	}
 
 	ptr += 4;
 
-	if ((*header >> 14) & PADFLAG_INTPOS) {
+	if ((headerval >> 14) & PADFLAG_INTPOS) {
 		if (fields & PADFIELD_POS) {
-			s16 *sbuffer = (s16 *) ptr;
-			pad->pos.x = sbuffer[0];
-			pad->pos.y = sbuffer[1];
-			pad->pos.z = sbuffer[2];
+			pad->pos.x = readS16Unaligned(ptr + 0);
+			pad->pos.y = readS16Unaligned(ptr + 2);
+			pad->pos.z = readS16Unaligned(ptr + 4);
 		}
 		ptr += 8;
 	} else {
 		if (fields & PADFIELD_POS) {
-			fbuffer = (f32 *) ptr;
-			pad->pos.x = fbuffer[0];
-			pad->pos.y = fbuffer[1];
-			pad->pos.z = fbuffer[2];
+			pad->pos.x = readF32Unaligned(ptr + 0);
+			pad->pos.y = readF32Unaligned(ptr + 4);
+			pad->pos.z = readF32Unaligned(ptr + 8);
 		}
 		ptr += 12;
 	}
 
-	if ((*header >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) {
+	if ((headerval >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) {
 		if (fields & (PADFIELD_UP | PADFIELD_NORMAL)) {
-			if ((*header >> 14) & PADFLAG_UPALIGNTOX) {
-				pad->up.x = ((*header >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
+			if ((headerval >> 14) & PADFLAG_UPALIGNTOX) {
+				pad->up.x = ((headerval >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
 				pad->up.y = 0;
 				pad->up.z = 0;
-			} else if ((*header >> 14) & PADFLAG_UPALIGNTOY) {
+			} else if ((headerval >> 14) & PADFLAG_UPALIGNTOY) {
 				pad->up.x = 0;
-				pad->up.y = ((*header >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
+				pad->up.y = ((headerval >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
 				pad->up.z = 0;
 			} else {
 				pad->up.x = 0;
 				pad->up.y = 0;
-				pad->up.z = ((*header >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
+				pad->up.z = ((headerval >> 14) & PADFLAG_UPALIGNINVERT) ? -1 : 1;
 			}
 		}
 	} else {
 		if (fields & (PADFIELD_UP | PADFIELD_NORMAL)) {
-			fbuffer = (f32 *) ptr;
-			pad->up.x = fbuffer[0];
-			pad->up.y = fbuffer[1];
-			pad->up.z = fbuffer[2];
+			pad->up.x = readF32Unaligned(ptr + 0);
+			pad->up.y = readF32Unaligned(ptr + 4);
+			pad->up.z = readF32Unaligned(ptr + 8);
 		}
 		ptr += 12;
 	}
 
-	if ((*header >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) {
+	if ((headerval >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) {
 		if (fields & (PADFIELD_LOOK | PADFIELD_NORMAL)) {
-			if ((*header >> 14) & PADFLAG_LOOKALIGNTOX) {
-				pad->look.x = ((*header >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
+			if ((headerval >> 14) & PADFLAG_LOOKALIGNTOX) {
+				pad->look.x = ((headerval >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
 				pad->look.y = 0;
 				pad->look.z = 0;
-			} else if ((*header >> 14) & PADFLAG_LOOKALIGNTOY) {
+			} else if ((headerval >> 14) & PADFLAG_LOOKALIGNTOY) {
 				pad->look.x = 0;
-				pad->look.y = ((*header >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
+				pad->look.y = ((headerval >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
 				pad->look.z = 0;
 			} else {
 				pad->look.x = 0;
 				pad->look.y = 0;
-				pad->look.z = ((*header >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
+				pad->look.z = ((headerval >> 14) & PADFLAG_LOOKALIGNINVERT) ? -1 : 1;
 			}
 		}
 	} else {
 		if (fields & (PADFIELD_LOOK | PADFIELD_NORMAL)) {
-			fbuffer = (f32 *) ptr;
-			pad->look.x = fbuffer[0];
-			pad->look.y = fbuffer[1];
-			pad->look.z = fbuffer[2];
+			pad->look.x = readF32Unaligned(ptr + 0);
+			pad->look.y = readF32Unaligned(ptr + 4);
+			pad->look.z = readF32Unaligned(ptr + 8);
 		}
 		ptr += 12;
 	}
@@ -118,15 +140,14 @@ void padUnpack(s32 padnum, u32 fields, struct pad *pad)
 		pad->normal.z = pad->up.x * pad->look.y - pad->look.x * pad->up.y;
 	}
 
-	if ((*header >> 14) & PADFLAG_HASBBOXDATA) {
+	if ((headerval >> 14) & PADFLAG_HASBBOXDATA) {
 		if (fields & PADFIELD_BBOX) {
-			fbuffer = (f32 *) ptr;
-			pad->bbox.xmin = fbuffer[0];
-			pad->bbox.xmax = fbuffer[1];
-			pad->bbox.ymin = fbuffer[2];
-			pad->bbox.ymax = fbuffer[3];
-			pad->bbox.zmin = fbuffer[4];
-			pad->bbox.zmax = fbuffer[5];
+			pad->bbox.xmin = readF32Unaligned(ptr + 0);
+			pad->bbox.xmax = readF32Unaligned(ptr + 4);
+			pad->bbox.ymin = readF32Unaligned(ptr + 8);
+			pad->bbox.ymax = readF32Unaligned(ptr + 12);
+			pad->bbox.zmin = readF32Unaligned(ptr + 16);
+			pad->bbox.zmax = readF32Unaligned(ptr + 20);
 		}
 		ptr += 4 * 6;
 	} else {
@@ -141,16 +162,16 @@ void padUnpack(s32 padnum, u32 fields, struct pad *pad)
 	}
 
 	if (fields & PADFIELD_FLAGS) {
-		pad->flags = (*header >> 14);
+		pad->flags = (headerval >> 14);
 	}
 }
 
 bool padHasBboxData(s32 padnum)
 {
 	u32 offset = g_PadOffsets[padnum];
-	u32 *header = (u32 *)&g_StageSetup.padfiledata[offset];
+	u32 headerval = readU32Unaligned(&g_StageSetup.padfiledata[offset]);
 
-	return ((*header >> 14) & PADFLAG_HASBBOXDATA) != 0;
+	return ((headerval >> 14) & PADFLAG_HASBBOXDATA) != 0;
 }
 
 void padGetCentre(s32 padnum, struct coord *coord)
@@ -183,99 +204,114 @@ void padGetCentre(s32 padnum, struct coord *coord)
  * When such a door is placed on a pad, this function is called. It adjusts the
  * pad's orientation to compensate for the model.
  */
+static inline void writeF32Unaligned(void *ptr, f32 val)
+{
+	memcpy(ptr, &val, sizeof(f32));
+}
+
+static inline void writeU32Unaligned(void *ptr, u32 val)
+{
+	memcpy(ptr, &val, sizeof(u32));
+}
+
 void padRotateForDoor(s32 padnum)
 {
 	u32 stack;
-	u32 *ptr;
-	u32 *header;
-	struct coord *look;
-	struct coord *up;
+	u8 *ptr;
+	u8 *headerptr;
+	u32 headerval;
 	f32 scale;
 	s32 offset;
 
 	offset = g_PadOffsets[padnum];
-	ptr = (u32 *) &g_StageSetup.padfiledata[offset];
-	header = ptr;
+	ptr = (u8 *) &g_StageSetup.padfiledata[offset];
+	headerptr = ptr;
+	headerval = readU32Unaligned(ptr);
 
-	ptr++;
+	ptr += 4;
 
-	if ((*header >> 14) & PADFLAG_INTPOS) {
-		ptr += 2;
+	if ((headerval >> 14) & PADFLAG_INTPOS) {
+		ptr += 8;
 	} else {
-		ptr += 3;
+		ptr += 12;
 	}
 
-	if (((*header >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) == 0) {
-		up = (struct coord *) ptr;
-		up->y = 0;
+	if (((headerval >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) == 0) {
+		f32 upx = readF32Unaligned(ptr + 0);
+		f32 upz = readF32Unaligned(ptr + 8);
 
-		scale = 1 / sqrtf(up->f[0] * up->f[0] + up->f[2] * up->f[2]);
+		writeF32Unaligned(ptr + 4, 0.0f); // up->y = 0
 
-		up->x *= scale;
-		up->z *= scale;
+		scale = 1 / sqrtf(upx * upx + upz * upz);
 
-		ptr += 3;
+		writeF32Unaligned(ptr + 0, upx * scale);
+		writeF32Unaligned(ptr + 8, upz * scale);
+
+		ptr += 12;
 	}
 
-	if ((*header >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) {
+	if ((headerval >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) {
 		// Unset the LOOKALIGN flags, then set LOOKALIGNTOY
-		*header = *header ^ (((*header >> 14) ^ ((*header >> 14) & ~(PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ | PADFLAG_LOOKALIGNINVERT))) << 14);
-		*header = *header ^ (((*header >> 14) ^ ((*header >> 14) | PADFLAG_LOOKALIGNTOY)) << 14);
+		headerval = headerval ^ (((headerval >> 14) ^ ((headerval >> 14) & ~(PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ | PADFLAG_LOOKALIGNINVERT))) << 14);
+		headerval = headerval ^ (((headerval >> 14) ^ ((headerval >> 14) | PADFLAG_LOOKALIGNTOY)) << 14);
+		writeU32Unaligned(headerptr, headerval);
 	} else {
-		look = (struct coord *) ptr;
-
-		look->x = 0.0f;
-		look->y = 1.0f;
-		look->z = 0.0f;
+		writeF32Unaligned(ptr + 0, 0.0f);
+		writeF32Unaligned(ptr + 4, 1.0f);
+		writeF32Unaligned(ptr + 8, 0.0f);
 	}
 }
 
 void padCopyBboxFromPad(s32 padnum, struct pad *src)
 {
 	u32 offset = g_PadOffsets[padnum];
-	f32 *fbuffer = (f32 *)&g_StageSetup.padfiledata[offset];
-	u32 *header = (u32 *)fbuffer;
+	u8 *ptr = (u8 *)&g_StageSetup.padfiledata[offset];
+	u32 headerval = readU32Unaligned(ptr);
 
-	if ((*header >> 14) & PADFLAG_HASBBOXDATA) {
-		fbuffer++;
+	if ((headerval >> 14) & PADFLAG_HASBBOXDATA) {
+		ptr += 4;
 
-		if ((*header >> 14) & PADFLAG_INTPOS) {
-			fbuffer += 2;
+		if ((headerval >> 14) & PADFLAG_INTPOS) {
+			ptr += 8;
 		} else {
-			fbuffer += 3;
+			ptr += 12;
 		}
 
-		if (((*header >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) == 0) {
-			fbuffer += 3;
+		if (((headerval >> 14) & (PADFLAG_UPALIGNTOX | PADFLAG_UPALIGNTOY | PADFLAG_UPALIGNTOZ)) == 0) {
+			ptr += 12;
 		}
 
-		if (((*header >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) == 0) {
-			fbuffer += 3;
+		if (((headerval >> 14) & (PADFLAG_LOOKALIGNTOX | PADFLAG_LOOKALIGNTOY | PADFLAG_LOOKALIGNTOZ)) == 0) {
+			ptr += 12;
 		}
 
-		fbuffer[0] = src->bbox.xmin;
-		fbuffer[1] = src->bbox.xmax;
-		fbuffer[2] = src->bbox.ymin;
-		fbuffer[3] = src->bbox.ymax;
-		fbuffer[4] = src->bbox.zmin;
-		fbuffer[5] = src->bbox.zmax;
+		writeF32Unaligned(ptr + 0, src->bbox.xmin);
+		writeF32Unaligned(ptr + 4, src->bbox.xmax);
+		writeF32Unaligned(ptr + 8, src->bbox.ymin);
+		writeF32Unaligned(ptr + 12, src->bbox.ymax);
+		writeF32Unaligned(ptr + 16, src->bbox.zmin);
+		writeF32Unaligned(ptr + 20, src->bbox.zmax);
 	}
 }
 
 void padSetFlag(s32 padnum, u32 flag)
 {
 	u32 offset = g_PadOffsets[padnum];
-	u32 *header = (u32 *)&g_StageSetup.padfiledata[offset];
+	u8 *ptr = (u8 *)&g_StageSetup.padfiledata[offset];
+	u32 headerval = readU32Unaligned(ptr);
 
-	*header = *header ^ ((*header >> 14) ^ ((*header >> 14) | flag)) << 14;
+	headerval = headerval ^ ((headerval >> 14) ^ ((headerval >> 14) | flag)) << 14;
+	writeU32Unaligned(ptr, headerval);
 }
 
 void padUnsetFlag(s32 padnum, u32 flag)
 {
 	u32 offset = g_PadOffsets[padnum];
-	u32 *header = (u32 *)&g_StageSetup.padfiledata[offset];
+	u8 *ptr = (u8 *)&g_StageSetup.padfiledata[offset];
+	u32 headerval = readU32Unaligned(ptr);
 
-	*header = *header ^ ((*header >> 14) ^ ((*header >> 14) & ~flag)) << 14;
+	headerval = headerval ^ ((headerval >> 14) ^ ((headerval >> 14) & ~flag)) << 14;
+	writeU32Unaligned(ptr, headerval);
 }
 
 bool func0f1162c4(s32 padnum, s32 arg1)

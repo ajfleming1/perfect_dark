@@ -19,7 +19,7 @@
 #include "utils.h"
 
 u32 g_OsMemSize = 0;
-s32 g_OsMemSizeMb = 16;
+s32 g_OsMemSizeMb = 32;
 u8 g_Is4Mb = 0;
 s8 g_Resetting = false;
 OSSched g_Sched;
@@ -110,11 +110,11 @@ int main(int argc, const char **argv)
 
 	// Try multiple paths since Wii U might use different conventions
 	const char *paths[] = {
+		"fs:/vol/external01/wiiu/apps/perfectdark/pd_crash.log",
+		"fs:/vol/external01/pd_crash.log",
 		"sd:/pd_crash.log",
-		"/sd/pd_crash.log",
-		"sd:pd_crash.log",
-		"/mnt/sd/pd_crash.log",
-		"pd_crash.log"
+		"pd_crash.log",
+		"./pd_crash.log"
 	};
 
 	for (int i = 0; i < 5; i++) {

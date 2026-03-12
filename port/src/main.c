@@ -19,7 +19,7 @@
 #include "utils.h"
 
 u32 g_OsMemSize = 0;
-s32 g_OsMemSizeMb = 16;
+s32 g_OsMemSizeMb = 32;
 u8 g_Is4Mb = 0;
 s8 g_Resetting = false;
 OSSched g_Sched;
@@ -142,7 +142,6 @@ int main(int argc, const char **argv)
 	sysLogPrintf(LOG_NOTE, "memp heap at %p - %p", g_MempHeap, g_MempHeap + g_MempHeapSize);
 	sysLogPrintf(LOG_NOTE, "rom  file at %p - %p", g_RomFile, g_RomFile + g_RomFileSize);
 
-	sysLogPrintf(LOG_NOTE, "main: checking args");
 	g_SndDisabled = sysArgCheck("--no-sound");
 
 	g_StageNum = sysArgGetInt("--boot-stage", STAGE_TITLE);
@@ -155,16 +154,8 @@ int main(int argc, const char **argv)
 		g_StageNum = STAGE_TITLE;
 	}
 
-	if (g_StageNum != STAGE_TITLE) {
-		sysLogPrintf(LOG_NOTE, "boot stage set to 0x%02x", g_StageNum);
-	}
-
 	g_FileAutoSelect = sysArgGetInt("--profile", -1);
-	if (g_FileAutoSelect >= 0) {
-		sysLogPrintf(LOG_NOTE, "player profile set to %d", g_FileAutoSelect);
-	}
 
-	sysLogPrintf(LOG_NOTE, "main: calling mainProc");
 	mainProc();
 
 	return 0;

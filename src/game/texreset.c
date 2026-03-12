@@ -10,7 +10,6 @@
 #include "data.h"
 #include "textureconfig.h"
 #include "types.h"
-#include "system.h"
 #ifndef PLATFORM_N64
 #include "video.h"
 #endif
@@ -47,7 +46,6 @@ extern u8 EXT_SEG _textureconfigSegmentEnd;
 
 void texReset(void)
 {
-	sysLogPrintf(LOG_NOTE, "texReset: start");
 	s32 stage;
 #ifdef PLATFORM_N64
 	u32 len = &_textureconfigSegmentEnd - &_textureconfigSegmentStart;
@@ -119,9 +117,7 @@ void texReset(void)
 		len += tcptrs[i].size;
 	}
 
-	sysLogPrintf(LOG_NOTE, "texReset: mempAlloc len=%u", len);
 	g_TextureConfigSegment = mempAlloc(len, MEMPOOL_STAGE);
-	sysLogPrintf(LOG_NOTE, "texReset: g_TextureConfigSegment=%p", g_TextureConfigSegment);
 	g_TexBase = 0; // unused
 
 	// set up pointers and fill them in
@@ -131,49 +127,36 @@ void texReset(void)
 		bcopy(tcptrs[i].src, *tcptrs[i].dst, tcptrs[i].size);
 		tcofs += tcptrs[i].size;
 	}
-	sysLogPrintf(LOG_NOTE, "texReset: pointers filled");
 
 	// calculate tc count, skipping the gdls and explosion pairs
 	g_TexNumConfigs = 0;
 	for (s32 i = 4; i < ARRAYCOUNT(tcptrs); ++i) {
 		g_TexNumConfigs += tcptrs[i].count;
 	}
-	sysLogPrintf(LOG_NOTE, "texReset: g_TexNumConfigs=%d", g_TexNumConfigs);
 
 	// reset backend texture cache
-	sysLogPrintf(LOG_NOTE, "texReset: calling videoResetTextureCache");
 	videoResetTextureCache();
-	sysLogPrintf(LOG_NOTE, "texReset: videoResetTextureCache done");
 
 	// get backend texture settings
 	g_TexFilter2D = videoGetTextureFilter2D() ? G_TF_BILERP : G_TF_POINT;
-	sysLogPrintf(LOG_NOTE, "texReset: g_TexFilter2D=%d", g_TexFilter2D);
 
 	// notify blur code that the blur framebuffer is probably full of garbage
 	g_BlurFbDirty = true;
 #endif
 
-	sysLogPrintf(LOG_NOTE, "texReset: allocating g_TexWords");
 	g_TexWords = mempAlloc(ALIGN16(g_TexNumConfigs * sizeof(uintptr_t)), MEMPOOL_STAGE);
-	sysLogPrintf(LOG_NOTE, "texReset: g_TexWords=%p", g_TexWords);
 
 	for (i = 0; i < g_TexNumConfigs; i++) {
 		g_TexWords[i] = NULL;
 	}
-	sysLogPrintf(LOG_NOTE, "texReset: g_TexWords nulled");
 
-	sysLogPrintf(LOG_NOTE, "texReset: loading explosion textures");
 	for (i = 0; i < ARRAYCOUNT(g_TcExplosionTexturePairs); i++) {
 		texLoad(&g_ExplosionTexturePairs[i].texturenum1, NULL, false);
 		texLoad(&g_ExplosionTexturePairs[i].texturenum2, NULL, false);
 	}
-	sysLogPrintf(LOG_NOTE, "texReset: explosion textures loaded");
 
-	sysLogPrintf(LOG_NOTE, "texReset: calling texLoadFromDisplayList g_TexGdl1");
 	texLoadFromDisplayList(g_TexGdl1, 0, 0);
-	sysLogPrintf(LOG_NOTE, "texReset: calling texLoadFromDisplayList g_TexGdl3");
 	texLoadFromDisplayList(g_TexGdl3, 0, 0);
-	sysLogPrintf(LOG_NOTE, "texReset: texLoadFromDisplayList done");
 
 	stage = mainGetStageNum();
 

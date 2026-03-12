@@ -256,6 +256,10 @@ Gfx *bviewPrepareStaticI8(Gfx *gdl, u32 colour, u32 alpha)
 
 Gfx *bviewDrawMotionBlur(Gfx *gdl, u32 colour, u32 alpha)
 {
+#ifdef __WIIU__
+	return gdl;
+#endif
+
 	u16 *fb = viGetFrontBuffer();
 	s32 viewtop = viGetViewTop();
 	s32 viewheight = viGetViewHeight();
@@ -2160,6 +2164,10 @@ Gfx *bviewDrawNvLens(Gfx *gdl)
 	}
 #endif
 
+#ifdef __WIIU__
+	return gdl;
+#endif
+
 	gDPPipeSync(gdl++);
 
 	gdl = bviewPrepareStaticRgba16(gdl, 0xffffffff, 0xff);
@@ -2344,6 +2352,10 @@ Gfx *bviewDrawIrLens(Gfx *gdl)
 	var8009caec = 0xff;
 	var8009caef = 0xde;
 	var8009caf0 = 0xde;
+
+#ifdef __WIIU__
+	return gdl;
+#endif
 
 	gDPPipeSync(gdl++);
 

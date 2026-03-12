@@ -937,7 +937,9 @@ void func0f0f1d6c(struct menudialogdef *dialogdef, struct menudialog *dialog, st
 	if (item) {
 		bool newcolumn = true;
 
-		while (item->type != MENUITEMTYPE_END) {
+		s32 item_failsafe = 0;
+		while (item->type != MENUITEMTYPE_END && item_failsafe < 100) {
+			item_failsafe++;
 			if (item->flags & MENUITEMFLAG_NEWCOLUMN) {
 				newcolumn = true;
 			}
@@ -1050,7 +1052,9 @@ void dialogCalculateContentSize(struct menudialogdef *dialogdef, struct menudial
 		s16 width;
 		s16 height;
 
-		while (item->type != MENUITEMTYPE_END) {
+		s32 item_failsafe = 0;
+		while (item->type != MENUITEMTYPE_END && item_failsafe < 100) {
+			item_failsafe++;
 			if (item->flags & MENUITEMFLAG_NEWCOLUMN) {
 				newcolumn = true;
 			}
@@ -1134,7 +1138,9 @@ s32 dialogFindItem(struct menudialog *dialog, struct menuitem *item, s32 *rowind
 		s32 y = 0;
 		*rowindex = g_Menus[g_MpPlayerNum].cols[*colindex].rowstart;
 
-		while (*rowindex < g_Menus[g_MpPlayerNum].cols[*colindex].rowstart + g_Menus[g_MpPlayerNum].cols[*colindex].numrows) {
+		s32 row_failsafe = 0;
+		while (*rowindex < g_Menus[g_MpPlayerNum].cols[*colindex].rowstart + g_Menus[g_MpPlayerNum].cols[*colindex].numrows && row_failsafe < 1000) {
+			row_failsafe++;
 			struct menuitem *thisitem = &dialog->definition->items[g_Menus[g_MpPlayerNum].rows[*rowindex].itemindex];
 
 			if (thisitem == item) {
@@ -1506,7 +1512,9 @@ void menuOpenDialog(struct menudialogdef *dialogdef, struct menudialog *dialog, 
 	// Check if any items should be focused automatically
 	item = dialog->definition->items;
 
-	while (item->type != MENUITEMTYPE_END) {
+	s32 prefoc_failsafe1 = 0;
+	while (item->type != MENUITEMTYPE_END && prefoc_failsafe1 < 100) {
+		prefoc_failsafe1++;
 		if (item->handler
 				&& (item->flags & MENUITEMFLAG_SELECTABLE_OPENSDIALOG) == 0
 				&& item->handler(MENUOP_CHECKPREFOCUSED, item, &data1)) {
@@ -1593,9 +1601,8 @@ void menuPushDialog(struct menudialogdef *dialogdef)
 					dialog->dstx = dialog->x = -SCREEN_320;
 					dialog->dsty = dialog->y = (viGetHeight() - dialog->height) / 2;
 					dialog->type = 0;
-
-					sibling = sibling->nextsibling;
 				}
+				sibling = sibling->nextsibling;
 			}
 
 			if (sibling);
@@ -2227,7 +2234,9 @@ Gfx *menuRenderModel(Gfx *gdl, struct menumodel *menumodel, s32 modeltype)
 		if (menumodel->partvisibility != NULL) {
 			struct modelpartvisibility *ptr = menumodel->partvisibility;
 
-			while (ptr->part != 255) {
+			s32 part_failsafe = 0;
+			while (ptr->part != 255 && part_failsafe < 1000) {
+				part_failsafe++;
 				struct modelnode *node = modelGetPart(menumodel->bodymodeldef, ptr->part);
 
 				if (node) {
@@ -3581,13 +3590,17 @@ void func0f0f8120(void)
 	if (mpindex >= MAX_PLAYERS)
 		mpindex -= MAX_PLAYERS;
 	if (g_Menus[mpindex].curdialog == prev) {
-		while (g_Menus[mpindex].depth > 0) {
+		s32 depth_failsafe = 0;
+		while (g_Menus[mpindex].depth > 0 && depth_failsafe < 20) {
+			depth_failsafe++;
 			menuPopDialog();
 		}
 	}
 #else
 	if (g_Menus[g_MpPlayerNum].curdialog == prev) {
-		while (g_Menus[g_MpPlayerNum].depth > 0) {
+		s32 depth_failsafe = 0;
+		while (g_Menus[g_MpPlayerNum].depth > 0 && depth_failsafe < 20) {
+			depth_failsafe++;
 			menuPopDialog();
 		}
 	}
@@ -4053,9 +4066,10 @@ void menuSwipe(s32 direction)
 
 		item = g_Menus[g_MpPlayerNum].curdialog->definition->items;
 
-		while (item->type != MENUITEMTYPE_END) {
-			if (item->handler
-					&& (item->flags & MENUITEMFLAG_SELECTABLE_OPENSDIALOG) == 0
+			s32 prefoc_failsafe2 = 0;
+			while (item->type != MENUITEMTYPE_END && prefoc_failsafe2 < 100) {
+				prefoc_failsafe2++;
+				if (item->handler					&& (item->flags & MENUITEMFLAG_SELECTABLE_OPENSDIALOG) == 0
 					&& item->handler(MENUOP_CHECKPREFOCUSED, item, &sp50)) {
 				g_Menus[g_MpPlayerNum].curdialog->focuseditem = item;
 			}
@@ -5855,7 +5869,9 @@ MenuItemHandlerResult menuhandler000fcc34(s32 operation, struct menuitem *item, 
 	bool done = false;
 
 	if (operation == MENUOP_SET) {
-		while (!done) {
+		s32 pak_failsafe = 0;
+		while (!done && pak_failsafe < 100) {
+			pak_failsafe++;
 			done = true;
 
 			if (g_Menus[g_MpPlayerNum].curdialog) {

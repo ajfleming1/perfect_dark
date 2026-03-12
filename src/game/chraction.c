@@ -15417,7 +15417,7 @@ s32 chrAssignCoverByCriteria(struct chrdata *chr, u16 criteria, s32 refdist)
 	f32 sqdist;
 	f32 y = chr->prop->pos.y + 170;
 	s32 currefdist = refdist;
-	struct prop *gotoprop;
+	struct prop *gotoprop = NULL;
 
 	if (criteria & COVERCRITERIA_DISTTOFETCHPROP) {
 		if (!chr->aibot || !chr->aibot->gotoprop) {

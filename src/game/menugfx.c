@@ -125,14 +125,7 @@ void menugfxCreateBlur(void)
 
 	g_ScaleX = 1;
 #else
-	if (g_MenuBlurFb < 0) {
-		g_MenuBlurFb = videoCreateFramebuffer(BLURIMG_WIDTH, BLURIMG_HEIGHT, true, false);
-		g_MenuScreenFb = videoCreateFramebuffer(0, 0, false, true);
-	}
-	// copy full viewport and downscale to 40x30
-	videoCopyFramebuffer(g_MenuBlurFb, 0, -1, -1);
-	// we'll generate a blurred version later
-	g_MenuBlurDone = false;
+	g_MenuBlurDone = true;
 #endif
 }
 
@@ -151,19 +144,8 @@ Gfx *menugfxRenderBgBlur(Gfx *gdl, u32 colour, s16 arg2, s16 arg3)
 	}
 
 #ifndef PLATFORM_N64
-	width = viGetWidth();
-	height = viGetHeight();
-	if (g_MenuBlurFb >= 0 && !g_MenuBlurDone) {
-		// blit the small blur texture onto a screen-sized framebuffer while blurring it
-		g_MenuBlurDone = true;
-		gdl = bviewPrepareStaticRgba16(gdl, 0xffffffff, 0xff);
-		gDPSetTextureFilter(gdl++, G_TF_BLUR_EXT);
-		gDPSetFramebufferTextureEXT(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, BLURIMG_WIDTH, g_MenuBlurFb);
-		gDPSetFramebufferTargetEXT(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, width, g_MenuScreenFb);
-		gSPImageRectangleEXT(gdl++, 0, 0, 0, 0, width << 2, height << 2, BLURIMG_WIDTH, BLURIMG_HEIGHT, 0, BLURIMG_WIDTH, BLURIMG_HEIGHT);
-		gDPSetFramebufferTargetEXT(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, width, 0);
-		gDPSetFramebufferTextureEXT(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, BLURIMG_WIDTH, 0);
-	}
+	// Blur framebuffer not supported on GX2 - render black background
+	return menugfxRenderGradient(gdl, 0, 0, viGetWidth(), viGetHeight(), 0x000000ff, 0x000000ff, 0x000000ff);
 #endif
 
 	colours = gfxAllocateColours(1);
@@ -1825,11 +1807,19 @@ Gfx *menugfxRenderBgSuccess(Gfx *gdl)
 		}
 
 		for (i = 0; i < NUM_SUCCESS_PARTICLES; i++) {
+			s32 attempts = 0;
 			do {
 				g_MenuParticles[i].x = RANDOMFRAC() * 10000.0f - 5000.0f;
 				g_MenuParticles[i].y = RANDOMFRAC() * 10000.0f - 5000.0f;
-			} while (g_MenuParticles[i].x < 640.0f && g_MenuParticles[i].x > -640.0f
+				attempts++;
+			} while (attempts < 100 && g_MenuParticles[i].x < 640.0f && g_MenuParticles[i].x > -640.0f
 					&& g_MenuParticles[i].y < 480.0f && g_MenuParticles[i].y > -480.0f);
+
+			if (attempts >= 100 || !(g_MenuParticles[i].x >= 640.0f || g_MenuParticles[i].x <= -640.0f
+					|| g_MenuParticles[i].y >= 480.0f || g_MenuParticles[i].y <= -480.0f)) {
+				g_MenuParticles[i].x = 5000.0f;
+				g_MenuParticles[i].y = 5000.0f;
+			}
 
 			g_MenuParticles[i].z = -RANDOMFRAC() * 8000.0f;
 		}
@@ -1846,11 +1836,19 @@ Gfx *menugfxRenderBgSuccess(Gfx *gdl)
 #endif
 
 		if (g_MenuParticles[i].z > 0.0f) {
+			s32 attempts = 0;
 			do {
 				g_MenuParticles[i].x = RANDOMFRAC() * 10000.0f - 5000.0f;
 				g_MenuParticles[i].y = RANDOMFRAC() * 10000.0f - 5000.0f;
-			} while (g_MenuParticles[i].x < 640.0f && g_MenuParticles[i].x > -640.0f
+				attempts++;
+			} while (attempts < 100 && g_MenuParticles[i].x < 640.0f && g_MenuParticles[i].x > -640.0f
 					&& g_MenuParticles[i].y < 480.0f && g_MenuParticles[i].y > -480.0f);
+
+			if (attempts >= 100 || !(g_MenuParticles[i].x >= 640.0f || g_MenuParticles[i].x <= -640.0f
+					|| g_MenuParticles[i].y >= 480.0f || g_MenuParticles[i].y <= -480.0f)) {
+				g_MenuParticles[i].x = 5000.0f;
+				g_MenuParticles[i].y = 5000.0f;
+			}
 
 			g_MenuParticles[i].z = -8000.0f - RANDOMFRAC() * 500.0f;
 		}

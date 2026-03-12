@@ -100,6 +100,9 @@ static int last_selected_tile = 0;
 static uint8_t* draw_buffer = nullptr;
 static uint8_t* draw_ptr = nullptr;
 
+// GX2 backend does not support the G_IMAGERECT_EXT command needed for framebuffer eyespy rendering
+bool gfx_framebuffers_enabled = false;
+
 static uint32_t frame_count;
 static float current_noise_scale;
 static FilteringMode current_filter_mode = FILTER_LINEAR;
@@ -526,7 +529,8 @@ static void gfx_gx2_set_scissor(int x, int y, int width, int height) {
     current_scissor_width = (uint32_t)gx2_width;
     current_scissor_height = (uint32_t)gx2_height;
 
-    GX2SetScissor(current_scissor_x, current_scissor_y, current_scissor_width, current_scissor_height);
+    // Always use full framebuffer to avoid portal black rectangle artifacts
+    GX2SetScissor(0, 0, WIIU_DEFAULT_FB_WIDTH, WIIU_DEFAULT_FB_HEIGHT);
 }
 
 static void gfx_gx2_set_use_alpha(bool use_alpha, bool modulate) {
@@ -943,7 +947,7 @@ void gfx_gx2_copy_framebuffer(int fb_dst, int fb_src, int left, int top, bool fl
 }
 
 void gfx_gx2_read_framebuffer_to_cpu(int fb_id, uint32_t width, uint32_t height, uint16_t* rgba16_buf) {
-    if (fb_id >= used_framebuffers) {
+    if ((size_t)fb_id >= used_framebuffers) {
         return;
     }
 
@@ -972,7 +976,7 @@ void gfx_gx2_read_framebuffer_to_cpu(int fb_id, uint32_t width, uint32_t height,
 
     gfx_wiiu_set_context_state();
 
-    for (int y = 0; y < height; y++) {
+    for (uint32_t y = 0; y < height; y++) {
         memcpy(rgba16_buf + y * width, ((uint16_t*) surface.image) + y * surface.pitch, width * 2);
     }
 
@@ -1004,7 +1008,7 @@ gfx_gx2_get_pixel_depth(int fb_id, const std::set<std::pair<float, float>>& coor
                                    (int32_t)(buffer.depth_buffer.surface.height - y) + 1 };
 
             // dst points will be spread over the x-axis of the buffer
-            dstPoints[i] = GX2Point{ i, 0 };
+            dstPoints[i] = GX2Point{ (int32_t)i, 0 };
         }
 
         // Invalidate the buffer first

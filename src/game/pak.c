@@ -878,10 +878,13 @@ PakErr2 pakReadHeaderAtOffset(s8 device, u32 offset, struct pakfileheader *heade
 		memcpy(headerptr, sp38, sizeof(struct pakfileheader));
 		pakCalculateChecksum(&sp38[0x08], &sp38[0x10], checksum);
 
-		if (headerptr->headersum[0] != checksum[0] || headerptr->headersum[1] != checksum[1]) {
-			return PAK_ERR2_CHECKSUM;
-		}
-
+			if (headerptr->headersum[0] != checksum[0] || headerptr->headersum[1] != checksum[1]) {
+				return PAK_ERR2_CHECKSUM;
+			}
+		
+			if (headerptr->filelen == 0) {
+				return PAK_ERR2_BADOFFSET;
+			}
 		if (!headerptr->writecompleted) {
 			return PAK_ERR2_INCOMPLETE;
 		}

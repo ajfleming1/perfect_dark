@@ -1,8 +1,5 @@
 #include <ultra64.h>
 #include "constants.h"
-#ifndef PLATFORM_N64
-#include "system.h"
-#endif
 #include "game/cheats.h"
 #include "game/chraction.h"
 #include "game/chr.h"
@@ -359,15 +356,11 @@ void bodyAllocateChr(s32 stagenum, struct packedchr *packed, s32 cmdindex)
 	f32 angle;
 	s32 index;
 
-	sysLogPrintf(LOG_NOTE, "bodyAllocateChr: padnum=%d bodynum=%d headnum=%d spawnflags=0x%x chrnum=%d", (int)packed->padnum, (int)packed->bodynum, (int)packed->headnum, (unsigned)packed->spawnflags, (int)packed->chrnum);
-
 	if (packed->padnum < 0 || (g_PadsFile && packed->padnum >= g_PadsFile->numpads)) {
-		sysLogPrintf(LOG_ERROR, "bodyAllocateChr: Invalid padnum %d (max %d) at cmdindex %d", packed->padnum, g_PadsFile ? g_PadsFile->numpads : -1, cmdindex);
 		return;
 	}
 
 	padUnpack(packed->padnum, PADFIELD_POS | PADFIELD_LOOK | PADFIELD_ROOM, &pad);
-	sysLogPrintf(LOG_NOTE, "bodyAllocateChr: padUnpack done room=%d", (int)pad.room);
 
 	rooms[0] = pad.room;
 	rooms[1] = -1;
@@ -400,8 +393,6 @@ void bodyAllocateChr(s32 stagenum, struct packedchr *packed, s32 cmdindex)
 	} else {
 		bodynum = packed->bodynum;
 	}
-	sysLogPrintf(LOG_NOTE, "bodyAllocateChr: bodynum=%d checking g_HeadsAndBodies", bodynum);
-
 	if (!g_HeadsAndBodies[bodynum].unk00_01) {
 		if (packed->headnum >= 0) {
 			headnum = packed->headnum;
@@ -424,9 +415,7 @@ void bodyAllocateChr(s32 stagenum, struct packedchr *packed, s32 cmdindex)
 
 	if (model != NULL) {
 		angle = atan2f(pad.look.x, pad.look.z);
-		sysLogPrintf(LOG_NOTE, "bodyAllocateChr: calling chrAllocate");
 		prop = chrAllocate(model, &pad.pos, rooms, angle, ailistFindById(packed->ailistnum));
-		sysLogPrintf(LOG_NOTE, "bodyAllocateChr: chrAllocate returned %p", prop);
 
 		if (prop != NULL) {
 			propActivate(prop);
@@ -440,9 +429,7 @@ void bodyAllocateChr(s32 stagenum, struct packedchr *packed, s32 cmdindex)
 			chr->chrpreset1 = packed->chrpreset;
 			chr->headnum = headnum;
 			chr->bodynum = bodynum;
-			sysLogPrintf(LOG_NOTE, "bodyAllocateChr: calling bodyGetRace(%d)", chr->bodynum);
 			chr->race = bodyGetRace(chr->bodynum);
-			sysLogPrintf(LOG_NOTE, "bodyAllocateChr: bodyGetRace done");
 
 			chr->rtracked = false;
 
@@ -452,7 +439,6 @@ void bodyAllocateChr(s32 stagenum, struct packedchr *packed, s32 cmdindex)
 				chr->height = 185;
 				chr->radius = 30;
 			} else if (bodynum == BODY_CHICROB) {
-				sysLogPrintf(LOG_NOTE, "bodyAllocateChr: allocating fireslotthing");
 				chr->unk348[0] = mempAlloc(sizeof(struct fireslotthing), MEMPOOL_STAGE);
 				chr->unk348[1] = mempAlloc(sizeof(struct fireslotthing), MEMPOOL_STAGE);
 				chr->unk348[0]->beam = mempAlloc(ALIGN16(sizeof(struct beam)), MEMPOOL_STAGE);

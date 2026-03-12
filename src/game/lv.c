@@ -239,17 +239,13 @@ void lvUpdateMiscSfx(void)
 
 void lvReset(s32 stagenum)
 {
-	sysLogPrintf(LOG_NOTE, "lvReset: start stagenum=%d", stagenum);
 	lvFadeReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: lvFadeReset done");
 
 	var80084014 = false;
 	var80084010 = 0;
 
 #if VERSION >= VERSION_NTSC_1_0
-	sysLogPrintf(LOG_NOTE, "lvReset: calling joyLockCyclicPolling");
 	joyLockCyclicPolling();
-	sysLogPrintf(LOG_NOTE, "lvReset: joyLockCyclicPolling done");
 
 	g_Vars.joydisableframestogo = 10;
 #else
@@ -264,9 +260,7 @@ void lvReset(s32 stagenum)
 	g_Vars.paksneededformenu = 0;
 	g_Vars.stagenum = stagenum;
 
-	sysLogPrintf(LOG_NOTE, "lvReset: calling cheatsReset");
 	cheatsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: cheatsReset done");
 
 	var80084040 = true;
 	g_Vars.lvframenum = 0;
@@ -306,27 +300,18 @@ void lvReset(s32 stagenum)
 
 	g_MiscAudioHandle = NULL;
 
-	sysLogPrintf(LOG_NOTE, "lvReset: calling musicReset");
 	musicReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: calling modelmgrSetLvResetting");
 	modelmgrSetLvResetting(true);
-	sysLogPrintf(LOG_NOTE, "lvReset: calling surfaceReset");
 	surfaceReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: calling texReset");
 	texReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: calling textReset");
 	textReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: calling hudmsgsReset");
 	hudmsgsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: after hudmsgsReset");
 
 	if (stagenum == STAGE_TEST_OLD) {
-		sysLogPrintf(LOG_NOTE, "lvReset: calling titleReset for TEST_OLD");
 		titleReset();
 	}
 
 	if (stagenum == STAGE_TITLE) {
-		sysLogPrintf(LOG_NOTE, "lvReset: calling titleReset for TITLE");
 		titleReset();
 	} else if (stagenum == STAGE_BOOTPAKMENU) {
 		// empty
@@ -338,15 +323,10 @@ void lvReset(s32 stagenum)
 		s32 i;
 		s32 j;
 
-		sysLogPrintf(LOG_NOTE, "lvReset: calling tilesReset");
 		tilesReset();
-		sysLogPrintf(LOG_NOTE, "lvReset: calling bgReset");
 		bgReset(g_Vars.stagenum);
-		sysLogPrintf(LOG_NOTE, "lvReset: calling bgBuildTables");
 		bgBuildTables(g_Vars.stagenum);
-		sysLogPrintf(LOG_NOTE, "lvReset: calling skyReset");
 		skyReset(g_Vars.stagenum);
-		sysLogPrintf(LOG_NOTE, "lvReset: after skyReset");
 
 		if (g_Vars.normmplayerisrunning) {
 			musicSetStageAndStartMusic(stagenum);
@@ -387,43 +367,24 @@ void lvReset(s32 stagenum)
 	}
 
 	mpSetDefaultNamesIfEmpty();
-	sysLogPrintf(LOG_NOTE, "lvReset: animsReset");
 	animsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: objectivesReset");
 	objectivesReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: vtxstoreReset");
 	vtxstoreReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: modelmgrReset");
 	modelmgrReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: psReset");
 	psReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: setupLoadFiles");
 	setupLoadFiles(stagenum);
-	sysLogPrintf(LOG_NOTE, "lvReset: scenarioReset");
 	scenarioReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: varsReset");
 	varsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: propsReset");
 	propsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: chrmgrReset");
 	chrmgrReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: bodiesReset");
 	bodiesReset(stagenum);
-	sysLogPrintf(LOG_NOTE, "lvReset: setupCreateProps");
 	setupCreateProps(stagenum);
-	sysLogPrintf(LOG_NOTE, "lvReset: tagsReset");
 	tagsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: explosionsReset");
 	explosionsReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: smokeReset");
 	smokeReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: sparksReset");
 	sparksReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: weatherReset");
 	weatherReset();
-	sysLogPrintf(LOG_NOTE, "lvReset: lvResetMiscSfx");
 	lvResetMiscSfx();
-	sysLogPrintf(LOG_NOTE, "lvReset: lvResetMiscSfx done");
 
 	switch (g_Vars.stagenum) {
 	case STAGE_ESCAPE:

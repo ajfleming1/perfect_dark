@@ -4,6 +4,10 @@
 #include <PR/ultratypes.h>
 #include <PR/os_cont.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define INPUT_MAX_CONTROLLERS MAXCONTROLLERS
 #define INPUT_MAX_CONNECTED_CONTROLLERS 8
 #define INPUT_MAX_CONTROLLER_BUTTONS 32
@@ -258,6 +262,7 @@ void inputMouseShowCursor(s32 show);
 void inputStartTextInput(void);
 void inputStopTextInput(void);
 s32 inputIsTextInputActive(void);
+void inputReload(void);
 
 void inputClearLastTextChar(void);
 char inputGetLastTextChar(void);
@@ -269,5 +274,9 @@ const char *inputGetClipboard(void);
 
 // returns keymod values
 u32 inputGetKeyModState(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

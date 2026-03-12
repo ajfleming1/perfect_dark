@@ -12,6 +12,10 @@
 #include "system.h"
 #include "fs.h"
 
+#ifdef __WIIU__
+extern void wiiuReadPad(OSContPad *pad, int32_t *lx, int32_t *ly, int32_t *rx, int32_t *ry);
+#endif
+
 #if !SDL_VERSION_ATLEAST(2, 0, 14)
 // this was added in 2.0.14
 #define SDL_CONTROLLER_TYPE_VIRTUAL SDL_CONTROLLER_TYPE_UNKNOWN
@@ -416,6 +420,16 @@ static inline void inputCloseAllControllers(void)
 
 static inline s32 inputTryController(const s32 cidx, const s32 jidx)
 {
+#ifdef __WIIU__
+	// On Wii U, we use VPAD directly for the gamepad, not SDL
+	if (cidx == 0) {
+		sysLogPrintf(LOG_NOTE, "Input: Using Wii U GamePad (direct VPAD read)");
+		connectedMask |= (1 << cidx);
+		return 1;
+	}
+	return 0;
+#endif
+
 	if (!pads[cidx]) {
 		pads[cidx] = SDL_GameControllerOpen(jidx);
 		if (pads[cidx]) {
@@ -428,9 +442,11 @@ static inline s32 inputTryController(const s32 cidx, const s32 jidx)
 
 static inline void inputInitAllControllers(void)
 {
+#ifndef __WIIU__
 	SDL_GameControllerUpdate();
 
 	numJoysticks = SDL_NumJoysticks();
+	sysLogPrintf(LOG_NOTE, "Input: inputInitAllControllers found %d joysticks", numJoysticks);
 
 	connectedMask = 1; // always report first controller as connected
 
@@ -466,6 +482,11 @@ static inline void inputInitAllControllers(void)
 	if (overrideMask) {
 		connectedMask = overrideMask;
 	}
+#else
+	// On Wii U, we use VPAD directly, not SDL joysticks
+	numJoysticks = 0;
+	connectedMask = 1; // always report first controller as connected
+#endif
 }
 
 static int inputEventFilter(void *data, SDL_Event *event)
@@ -679,6 +700,13 @@ static inline void inputLoadBinds(void)
 
 s32 inputInit(void)
 {
+#ifndef __WIIU__
+	// Initialize base SDL system first (required for subsystems to work properly)
+	if (!SDL_WasInit(SDL_INIT_EVENTS)) {
+		SDL_Init(SDL_INIT_EVENTS);
+	}
+#endif
+
 	// Set SDL hints before initializing the controller subsystem.
 	if (useHIDAPI) {
 #if SDL_VERSION_ATLEAST(2, 0, 12)
@@ -720,9 +748,11 @@ s32 inputInit(void)
 #endif
 	}
 
+#ifndef __WIIU__
 	if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC)) {
 		SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
 	}
+#endif
 
 	// try to load controller db from an external file in the save folder
 	if (fsFileSize("$S/" CONTROLLERDB_FNAME)) {
@@ -802,7 +832,6 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		npad->stick_y = 0;
 		npad->rstick_x = 0;
 		npad->rstick_y = 0;
-		return 0;
 	}
 
 	for (u32 i = 0; i < CONT_NUM_BUTTONS; ++i) {
@@ -811,12 +840,54 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		}
 	}
 
+	if (idx == 0) {
+		static int log_limit = 0;
+		if ((log_limit++ % 120) == 0) {
+			sysLogPrintf(LOG_NOTE, "Input: Pad 0 read. Ptr: %p, Buttons: %04x, TextInput: %d", pads[0], npad->button, textInput);
+		}
+	}
+
+	const struct controllercfg *cfg = &padsCfg[idx];
+	s32 rawAxes[4] = {0};
+
+#ifdef __WIIU__
+	if (idx == 0) {
+		wiiuReadPad(npad, &rawAxes[0], &rawAxes[1], &rawAxes[2], &rawAxes[3]);
+	}
+#endif
+
+	if (pads[idx]) {
+		rawAxes[0] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_LEFTX);
+		rawAxes[1] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_LEFTY);
+		rawAxes[2] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_RIGHTX);
+		rawAxes[3] = SDL_GameControllerGetAxis(pads[idx], SDL_CONTROLLER_AXIS_RIGHTY);
+	} else if (idx != 0) {
+		return 0;
+	}
+
+	s32 leftX = rawAxes[cfg->axisMap[0][0]];
+	s32 leftY = rawAxes[cfg->axisMap[0][1]];
+	s32 rightX = rawAxes[cfg->axisMap[1][0]];
+	s32 rightY = rawAxes[cfg->axisMap[1][1]];
+
+	leftX = inputAxisScale(leftX, cfg->deadzone[cfg->axisMap[0][0]], cfg->sens[cfg->axisMap[0][0]]);
+	leftY = inputAxisScale(leftY, cfg->deadzone[cfg->axisMap[0][1]], cfg->sens[cfg->axisMap[0][1]]);
+	rightX = inputAxisScale(rightX, cfg->deadzone[cfg->axisMap[1][0]], cfg->sens[cfg->axisMap[1][0]]);
+	rightY = inputAxisScale(rightY, cfg->deadzone[cfg->axisMap[1][1]], cfg->sens[cfg->axisMap[1][1]]);
+
 	const s32 xdiff = (inputBindPressed(idx, CK_STICK_XPOS) - inputBindPressed(idx, CK_STICK_XNEG));
 	const s32 ydiff = (inputBindPressed(idx, CK_STICK_YPOS) - inputBindPressed(idx, CK_STICK_YNEG));
 	npad->stick_x = xdiff < 0 ? -0x80 : (xdiff > 0 ? 0x7F : 0);
 	npad->stick_y = ydiff < 0 ? -0x80 : (ydiff > 0 ? 0x7F : 0);
 
-	const struct controllercfg *cfg = &padsCfg[idx];
+	if (!npad->stick_x && leftX) {
+		npad->stick_x = leftX / 0x100;
+	}
+
+	s32 stickY = -leftY / 0x100;
+	if (!npad->stick_y && stickY) {
+		npad->stick_y = (stickY == 128) ? 127 : stickY;
+	}
 
 	if (cfg->cancelCButtons) {
 		// opposite C buttons cancel each other out
@@ -826,29 +897,6 @@ s32 inputReadController(s32 idx, OSContPad *npad)
 		if ((npad->button & (U_CBUTTONS | D_CBUTTONS)) == (U_CBUTTONS | D_CBUTTONS)) {
 			npad->button &= ~(U_CBUTTONS | D_CBUTTONS);
 		}
-	}
-
-	if (!pads[idx]) {
-		return 0;
-	}
-
-	s32 leftX = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[0][0]);
-	s32 leftY = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[0][1]);
-	s32 rightX = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[1][0]);
-	s32 rightY = SDL_GameControllerGetAxis(pads[idx], cfg->axisMap[1][1]);
-
-	leftX = inputAxisScale(leftX, cfg->deadzone[cfg->axisMap[0][0]], cfg->sens[cfg->axisMap[0][0]]);
-	leftY = inputAxisScale(leftY, cfg->deadzone[cfg->axisMap[0][1]], cfg->sens[cfg->axisMap[0][1]]);
-	rightX = inputAxisScale(rightX, cfg->deadzone[cfg->axisMap[1][0]], cfg->sens[cfg->axisMap[1][0]]);
-	rightY = inputAxisScale(rightY, cfg->deadzone[cfg->axisMap[1][1]], cfg->sens[cfg->axisMap[1][1]]);
-
-	if (!npad->stick_x && leftX) {
-		npad->stick_x = leftX / 0x100;
-	}
-
-	s32 stickY = -leftY / 0x100;
-	if (!npad->stick_y && stickY) {
-		npad->stick_y = (stickY == 128) ? 127 : stickY;
 	}
 
 	if (cfg->stickCButtons) {
@@ -917,6 +965,7 @@ static inline void inputUpdateMouse(void)
 
 void inputUpdate(void)
 {
+	SDL_PumpEvents();
 	SDL_GameControllerUpdate();
 
 	if (mouseEnabled) {
@@ -1514,7 +1563,19 @@ u32 inputGetKeyModState(void)
 	return SDL_GetModState();
 }
 
-PD_CONSTRUCTOR static void inputConfigInit(void)
+void inputReload(void)
+{
+	// Re-initialize SDL input subsystems to recover from potential conflicts (e.g. with WHBProcInit)
+	SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
+	if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0) {
+		sysLogPrintf(LOG_NOTE, "Input: Reloaded SDL Subsystems.");
+	} else {
+		sysLogPrintf(LOG_ERROR, "Input: Failed to reload SDL: %s", SDL_GetError());
+	}
+	inputInitAllControllers();
+}
+
+static void inputConfigInit_disabled(void)
 {
 	configRegisterInt("Input.MouseEnabled", &mouseEnabled, 0, 1);
 	configRegisterInt("Input.MouseLockMode", &mouseLockMode, MLOCK_OFF, MLOCK_AUTO);

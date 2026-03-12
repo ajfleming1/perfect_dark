@@ -75,16 +75,24 @@ void starInsert(s32 index, struct coord *arg1)
 	s32 i;
 
 	// Shuffle g_StarPositions forward after the insertion point
-	for (i = g_StarPosIndexes[g_StarGridSize * 6 * g_StarGridSize] - 1; i >= g_StarPosIndexes[index + 1]; i--) {
-		g_StarPositions[i * 3 + 3] = g_StarPositions[i * 3 + 0];
-		g_StarPositions[i * 3 + 4] = g_StarPositions[i * 3 + 1];
-		g_StarPositions[i * 3 + 5] = g_StarPositions[i * 3 + 2];
+	s32 max_star_pos = g_StarPosIndexes[g_StarGridSize * 6 * g_StarGridSize];
+	for (i = max_star_pos - 1; i >= g_StarPosIndexes[index + 1]; i--) {
+		if (i + 1 < g_StarCount) {
+			g_StarPositions[i * 3 + 3] = g_StarPositions[i * 3 + 0];
+			g_StarPositions[i * 3 + 4] = g_StarPositions[i * 3 + 1];
+			g_StarPositions[i * 3 + 5] = g_StarPositions[i * 3 + 2];
+		}
 	}
 
 	// Write new data
-	g_StarPositions[g_StarPosIndexes[index + 1] * 3 + 0] = arg1->x * 127;
-	g_StarPositions[g_StarPosIndexes[index + 1] * 3 + 1] = arg1->y * 127;
-	g_StarPositions[g_StarPosIndexes[index + 1] * 3 + 2] = arg1->z * 127;
+	if (index + 1 <= g_StarGridSize * 6 * g_StarGridSize) {
+		s32 pos_index = g_StarPosIndexes[index + 1];
+		if (pos_index < g_StarCount) {
+			g_StarPositions[pos_index * 3 + 0] = arg1->x * 127;
+			g_StarPositions[pos_index * 3 + 1] = arg1->y * 127;
+			g_StarPositions[pos_index * 3 + 2] = arg1->z * 127;
+		}
+	}
 
 	// Increment indexes after the insertion point
 	for (i = index + 1; i <= g_StarGridSize * 6 * g_StarGridSize; i++) {

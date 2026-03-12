@@ -2329,7 +2329,7 @@ Gfx *player0f0baf84(Gfx *gdl)
 		u16 b;
 
 		guPerspective(a, &b, g_Vars.currentplayer->zoominfovy,
-				PAL ? 1.7316017150879f : 1.4545454978943f, 10, 300, 1);
+				PAL ? 1.7316017150879f : 1.4545454978943f, 300, 5000, 1);
 
 		gSPMatrix(gdl++, OS_PHYSICAL_TO_K0(a), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_PROJECTION);
 		gSPPerspNormalize(gdl++, b);
@@ -2340,6 +2340,9 @@ Gfx *player0f0baf84(Gfx *gdl)
 
 Gfx *playerDrawFade(Gfx *gdl, u32 r, u32 g, u32 b, f32 frac)
 {
+#ifndef __WIIU__
+	// Screen fade/tint effect (nightvision, thermal, etc.)
+	// Disabled on Wii U - GX2 backend doesn't handle G_RM_CLD_SURF render mode correctly
 	if (frac > 0) {
 		gDPPipeSync(gdl++);
 		gDPSetCycleType(gdl++, G_CYC_1CYCLE);
@@ -2360,6 +2363,7 @@ Gfx *playerDrawFade(Gfx *gdl, u32 r, u32 g, u32 b, f32 frac)
 		gDPSetTexturePersp(gdl++, G_TP_PERSP);
 		gDPSetTextureLOD(gdl++, G_TL_LOD);
 	}
+#endif
 
 	return gdl;
 }
@@ -4905,6 +4909,8 @@ Gfx *playerRenderHud(Gfx *gdl)
 		gdl = bgRenderArtifacts(gdl);
 
 		if (g_Vars.currentplayer->eyespy) {
+#ifndef __WIIU__
+			// Fisheye effect rendering (PC backend only - GX2 backend doesn't support it properly)
 			if (g_Vars.currentplayer->eyespy->startuptimer60 < TICKS(50)) {
 				gdl = bviewDrawFisheye(gdl, 0xffffffff, 255, 0, g_Vars.currentplayer->eyespy->startuptimer60, g_Vars.currentplayer->eyespy->hit);
 			} else {
@@ -4922,6 +4928,7 @@ Gfx *playerRenderHud(Gfx *gdl)
 					gdl = bviewDrawFisheye(gdl, 0xffffffff, 255, 0, TICKS(50), g_Vars.currentplayer->eyespy->hit);
 				}
 			}
+#endif
 
 			gdl = bviewDrawEyespyMetrics(gdl);
 		}

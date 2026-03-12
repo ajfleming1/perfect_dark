@@ -1,0 +1,77 @@
+● Summary of Debugging Session
+
+  Original Problem                                                                                                                                                                                                                
+  - Perfect Dark Wii U port: Works on CEMU, crashes on physical hardware                                                                                                                                                            - HUD Text Bug (FIXED ✅): Ammo/health/timer showing gray boxes instead of numbers                                                                                                                                            e
+    - Root cause: Numeric font uses 16-entry palette, but code was loading 32-entry palette
+    - Solution: Conditional palette loading based on font type
+  - Physical Hardware Freeze (IN PROGRESS ❌): Game freezes at menu with audio pulsing
+    - Works on CEMU ✅
+    - Cutscene plays ✅
+    - Inputs work ✅
+    - Freezes when menu opens automatically (after Joanna types at computer) ❌
+
+  What We've Discovered
+
+  1. Audio keeps pulsing in 1-second pattern (1 sec sound, 1 sec silent) = scheduler is running but video is frozen
+  2. The freeze is NOT caused by:
+    - ProcUIProcessMessages (we fixed it to skip when already in foreground)
+    - gfx_wiiu_start_frame GPU wait loop (we tested removing it)
+    - Graphics initialization (we tested various approaches)
+    - Graphics startup code
+  3. The freeze IS caused by:
+    - Something in menu rendering code specifically
+    - The 1-second audio pulse pattern suggests a periodic timeout or retry loop
+    - Hardware-specific (CEMU doesn't have the issue)
+
+  What We've Tried
+
+  ┌─────────────────────────────────────────────────────┬────────────────────────┬────────────────────────────────────────┐
+  │                         Fix                         │         Result         │                 Notes                  │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Skip ProcUIProcessMessages when has_foreground=true │ No change              │ Audio still pulses, video still frozen │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Remove GPU flip wait loop entirely                  │ -3 error               │ Corrupted graphics state               │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Increase GPU wait timeout (10ms → 100ms)            │ No change              │ GPU wasn't the bottleneck              │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Skip GX2GetSwapStatus call completely               │ No change              │ Freeze persists                        │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Comment out GX2WaitForFlip                          │ No change              │ Didn't help                            │
+  ├─────────────────────────────────────────────────────┼────────────────────────┼────────────────────────────────────────┤
+  │ Add extensive logging                               │ Logs work until freeze │ Confirmed freeze happens at menu       │
+  └─────────────────────────────────────────────────────┴────────────────────────┴────────────────────────────────────────┘
+
+  Current State
+
+  Key fix in place:
+  - gfx_wiiu_handle_events() skips ProcUIProcessMessages when has_foreground=true
+    (prevents the original hang, but menu freeze is separate issue)
+
+  Original gfx_wiiu_start_frame() restored (safe baseline)
+
+  The Real Problem
+
+  The menu rendering code has a hardware-specific issue that causes:
+  1. Scheduler to be unable to progress video rendering
+  2. Audio to continue in 1-second pulses (suggests periodic timeout/retry)
+  3. Never actually crashes - just stays frozen indefinitely
+
+  The 1-second pulse pattern is very specific and suggests either:
+  - A timeout loop in menu code
+  - A resource exhaustion that recovers every ~1 second
+  - A periodic retry mechanism
+
+  Next Steps
+
+  Need to investigate the menu rendering code itself:
+  1. Look for loops/waits in menu initialization
+  2. Check for hardware-specific branching
+  3. Find where the 1-second pattern comes from
+  4. Compare menu rendering vs cutscene rendering (which works fine)
+
+  Build Script Update
+
+  ✅ Fixed build_wiiu_wut.sh to auto-clean and auto-copy to SD card
+
+  ---
+  Current blocker: The menu freeze is in game code (menu rendering), not in the graphics/OS layer. We need to debug the menu code to find what's blocking on physical hardware.

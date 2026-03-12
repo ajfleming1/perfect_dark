@@ -5,6 +5,7 @@
 */
 #ifdef __WIIU__
 
+#include <cstdlib>
 #include <stdio.h>
 #include <time.h>
 #include <malloc.h>
@@ -44,6 +45,7 @@
 #include "gfx_pc.h"
 #include "gfx_gx2.h"
 #include "gfx_wiiu.h"
+#include "input.h"
 
 static MEMHeapHandle heap_MEM1 = nullptr;
 static MEMHeapHandle heap_foreground = nullptr;
@@ -193,46 +195,87 @@ static uint32_t gfx_wiiu_proc_callback_released(void* context) {
     return 0;
 }
 
+extern "C" void wiiuReadPad(OSContPad *pad, int32_t *lx, int32_t *ly, int32_t *rx, int32_t *ry) {
+    VPADStatus buffer[16];
+    VPADReadError error;
+    int count = VPADRead(VPAD_CHAN_0, buffer, 16, &error);
+
+    if (count > 0 && error == VPAD_READ_SUCCESS) {
+        VPADStatus *s = &buffer[count - 1];
+        if (s->hold & VPAD_BUTTON_A) pad->button |= A_BUTTON;
+        if (s->hold & VPAD_BUTTON_B) pad->button |= B_BUTTON;
+        if (s->hold & VPAD_BUTTON_PLUS) pad->button |= START_BUTTON;
+        if (s->hold & VPAD_BUTTON_ZL) pad->button |= Z_TRIG;
+        if (s->hold & VPAD_BUTTON_L) pad->button |= L_TRIG;
+        if (s->hold & VPAD_BUTTON_R) pad->button |= R_TRIG;
+        
+        // Map D-Pad
+        if (s->hold & VPAD_BUTTON_LEFT) pad->button |= L_JPAD;
+        if (s->hold & VPAD_BUTTON_RIGHT) pad->button |= R_JPAD;
+        if (s->hold & VPAD_BUTTON_UP) pad->button |= U_JPAD;
+        if (s->hold & VPAD_BUTTON_DOWN) pad->button |= D_JPAD;
+
+        // Map Sticks to SDL range (+-32767)
+        // VPAD is -1.0 to 1.0 (Up positive)
+        // SDL is -32768 to 32767 (Up negative)
+        *lx = (int32_t)(s->leftStick.x * 32767.0f);
+        *ly = (int32_t)(s->leftStick.y * -32767.0f);
+        *rx = (int32_t)(s->rightStick.x * 32767.0f);
+        *ry = (int32_t)(s->rightStick.y * -32767.0f);
+    }
+}
+
 static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
     WHBLogPrintf("gfx_wiiu_init: starting");
+    fflush(stdout);
 
     WHBProcInit();
     WHBLogPrintf("gfx_wiiu_init: WHBProcInit done");
+    fflush(stdout);
 
     // Init ProcUI
     uint32_t mem1_addr, mem1_size;
     OSGetMemBound(OS_MEM1, &mem1_addr, &mem1_size);
     WHBLogPrintf("gfx_wiiu_init: MEM1 addr=0x%08x size=%u", mem1_addr, mem1_size);
+    fflush(stdout);
 
     mem1_storage = memalign(0x40, mem1_size);
     WHBLogPrintf("gfx_wiiu_init: mem1_storage=%p", mem1_storage);
+    fflush(stdout);
 
     ProcUISetMEM1Storage(mem1_storage, mem1_size);
     WHBLogPrintf("gfx_wiiu_init: ProcUISetMEM1Storage done");
+    fflush(stdout);
 
     ProcUIRegisterCallback(PROCUI_CALLBACK_ACQUIRE, gfx_wiiu_proc_callback_acquired, nullptr, 100);
     ProcUIRegisterCallback(PROCUI_CALLBACK_RELEASE, gfx_wiiu_proc_callback_released, nullptr, 100);
     WHBLogPrintf("gfx_wiiu_init: ProcUI callbacks registered");
+    fflush(stdout);
 
     // Init GX2
     command_buffer_pool = memalign(GX2_COMMAND_BUFFER_ALIGNMENT, 0x400000);
     WHBLogPrintf("gfx_wiiu_init: command_buffer_pool=%p", command_buffer_pool);
+    fflush(stdout);
 
     GX2Init((uint32_t[]){ GX2_INIT_CMD_BUF_BASE, (uintptr_t)command_buffer_pool, GX2_INIT_CMD_BUF_POOL_SIZE, 0x400000,
                           GX2_INIT_END });
     WHBLogPrintf("gfx_wiiu_init: GX2Init done");
+    fflush(stdout);
 
     // Create context state
     context_state = (GX2ContextState*)memalign(GX2_CONTEXT_STATE_ALIGNMENT, sizeof(GX2ContextState));
     WHBLogPrintf("gfx_wiiu_init: context_state=%p", context_state);
+    fflush(stdout);
 
     GX2SetupContextStateEx(context_state, TRUE);
     GX2SetContextState(context_state);
     WHBLogPrintf("gfx_wiiu_init: context state setup done");
+    fflush(stdout);
 
     // Set TV render mode
     GX2TVScanMode scanMode = GX2GetSystemTVScanMode();
     WHBLogPrintf("gfx_wiiu_init: TV scan mode=%d", (int)scanMode);
+    fflush(stdout);
 
     switch (scanMode) {
         case GX2_TV_SCAN_MODE_480I:
@@ -255,6 +298,7 @@ static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
             break;
     }
     WHBLogPrintf("gfx_wiiu_init: tv_render_mode=%d tv=%dx%d", (int)tv_render_mode, tv_width, tv_height);
+    fflush(stdout);
 
     drc_render_mode = GX2_DRC_RENDER_MODE_SINGLE;
 
@@ -262,45 +306,61 @@ static void gfx_wiiu_init(const struct GfxWindowInitSettings *settings) {
     GX2CalcTVSize(tv_render_mode, GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE, &tv_scan_buffer_size, &tv_unk);
     GX2CalcDRCSize(drc_render_mode, GX2_SURFACE_FORMAT_UNORM_R8_G8_B8_A8, GX2_BUFFERING_MODE_DOUBLE, &drc_scan_buffer_size, &drc_unk);
     WHBLogPrintf("gfx_wiiu_init: tv_scan_buffer_size=%u drc_scan_buffer_size=%u", tv_scan_buffer_size, drc_scan_buffer_size);
-
-    gfx_wiiu_init_mem1();
-    WHBLogPrintf("gfx_wiiu_init: init_mem1 done");
+    fflush(stdout);
 
     // Should call Acquire callback immediately
     WHBLogPrintf("gfx_wiiu_init: entering ProcUI loop");
+    fflush(stdout);
     ProcUIStatus status;
     while ((status = ProcUIProcessMessages(TRUE)) != PROCUI_STATUS_IN_FOREGROUND) {
         WHBLogPrintf("gfx_wiiu_init: ProcUI status=%d", (int)status);
+        fflush(stdout);
         if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
             ProcUIDrawDoneRelease();
         }
         if (status == PROCUI_STATUS_EXITING) {
             WHBLogPrintf("gfx_wiiu_init: exiting due to PROCUI_STATUS_EXITING");
+            fflush(stdout);
             return;
         }
     }
     WHBLogPrintf("gfx_wiiu_init: ProcUI loop done, has_foreground=%d", (int)has_foreground);
+    fflush(stdout);
 
     // In Cemu (and some real hardware configs), the app starts in foreground but the
     // ACQUIRE callback is never triggered by ProcUIProcessMessages. If that happened,
     // manually invoke the acquire callback now so scan buffers and has_foreground are set up.
     if (!has_foreground) {
         WHBLogPrintf("gfx_wiiu_init: acquire callback not fired, calling manually");
+        fflush(stdout);
         gfx_wiiu_proc_callback_acquired(nullptr);
         WHBLogPrintf("gfx_wiiu_init: manual acquire done, has_foreground=%d", (int)has_foreground);
+        fflush(stdout);
     }
+
+    // Init MEM1 heap AFTER acquiring foreground. On real hardware MEM1 is a foreground
+    // resource managed by ProcUI and must not be touched until ACQUIRE has fired.
+    gfx_wiiu_init_mem1();
+    WHBLogPrintf("gfx_wiiu_init: init_mem1 done");
+    fflush(stdout);
 
     // These may not be supported in Cemu, but are needed on real hardware
     GX2SetTVScale(WIIU_DEFAULT_FB_WIDTH, WIIU_DEFAULT_FB_HEIGHT);
     GX2SetDRCScale(WIIU_DEFAULT_FB_WIDTH, WIIU_DEFAULT_FB_HEIGHT);
     WHBLogPrintf("gfx_wiiu_init: TV/DRC scale set");
+    fflush(stdout);
 
     GX2SetSwapInterval(frame_divisor);
     WHBLogPrintf("gfx_wiiu_init: swap interval set");
+    fflush(stdout);
 
     gfx_current_dimensions.width = gfx_current_game_window_viewport.width = WIIU_DEFAULT_FB_WIDTH;
     gfx_current_dimensions.height = gfx_current_game_window_viewport.height = WIIU_DEFAULT_FB_HEIGHT;
     WHBLogPrintf("gfx_wiiu_init: complete");
+    fflush(stdout);
+
+    // Re-initialize input to fix conflicts with WHBProcInit
+    inputReload();
 }
 
 static void gfx_wiiu_close(void) {
@@ -401,9 +461,14 @@ static void gfx_wiiu_get_centered_positions(int32_t width, int32_t height, int32
 }
 
 static void gfx_wiiu_handle_events(void) {
-    ProcUIStatus status = ProcUIProcessMessages(TRUE);
-    if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
-        ProcUIDrawDoneRelease();
+    if (!has_foreground) {
+        ProcUIStatus status = ProcUIProcessMessages(FALSE);
+        if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
+            ProcUIDrawDoneRelease();
+        } else if (status == PROCUI_STATUS_EXITING) {
+            ProcUIShutdown();
+            exit(0);
+        }
     }
 }
 
@@ -420,7 +485,6 @@ static bool gfx_wiiu_start_frame(void) {
         }
 
         if (wait_count >= 10) {
-            GX2WaitForFlip();
             break;
         }
 

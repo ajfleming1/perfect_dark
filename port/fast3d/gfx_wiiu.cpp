@@ -5,6 +5,7 @@
 */
 #ifdef __WIIU__
 
+#include <cstdlib>
 #include <stdio.h>
 #include <time.h>
 #include <malloc.h>
@@ -198,14 +199,6 @@ extern "C" void wiiuReadPad(OSContPad *pad, int32_t *lx, int32_t *ly, int32_t *r
     VPADStatus buffer[16];
     VPADReadError error;
     int count = VPADRead(VPAD_CHAN_0, buffer, 16, &error);
-    
-    static int log_limit = 0;
-    if (log_limit++ % 120 == 0) {
-        WHBLogPrintf("VPAD: Count=%d Error=%d", count, error);
-        if (count > 0) {
-             WHBLogPrintf("VPAD: Hold=%08x", buffer[count-1].hold);
-        }
-    }
 
     if (count > 0 && error == VPAD_READ_SUCCESS) {
         VPADStatus *s = &buffer[count - 1];
@@ -468,19 +461,14 @@ static void gfx_wiiu_get_centered_positions(int32_t width, int32_t height, int32
 }
 
 static void gfx_wiiu_handle_events(void) {
-    WHBLogPrintf("gfx_wiiu_handle_events: has_foreground=%d", has_foreground);
-
-    // Only call ProcUIProcessMessages if we don't already have foreground
-    // to avoid potential hangs on physical hardware
     if (!has_foreground) {
-        WHBLogPrintf("gfx_wiiu_handle_events: calling ProcUIProcessMessages");
         ProcUIStatus status = ProcUIProcessMessages(FALSE);
-        WHBLogPrintf("gfx_wiiu_handle_events: ProcUIProcessMessages returned %d", status);
         if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
             ProcUIDrawDoneRelease();
+        } else if (status == PROCUI_STATUS_EXITING) {
+            ProcUIShutdown();
+            exit(0);
         }
-    } else {
-        WHBLogPrintf("gfx_wiiu_handle_events: skipping ProcUIProcessMessages (has_foreground=true)");
     }
 }
 

@@ -105,75 +105,23 @@ static void cleanup(void)
 
 int main(int argc, const char **argv)
 {
-	// Try direct SD card logging to diagnose early crashes
-	FILE *dbglog = NULL;
-
-	// Try multiple paths since Wii U might use different conventions
-	const char *paths[] = {
-		"fs:/vol/external01/wiiu/apps/perfectdark/pd_crash.log",
-		"fs:/vol/external01/pd_crash.log",
-		"sd:/pd_crash.log",
-		"pd_crash.log",
-		"./pd_crash.log"
-	};
-
-	for (int i = 0; i < 5; i++) {
-		dbglog = fopen(paths[i], "w");
-		if (dbglog) {
-			fprintf(dbglog, "Log opened from path: %s\n", paths[i]);
-			fprintf(dbglog, "main: starting\n");
-			fflush(dbglog);
-			break;
-		}
-	}
-
 	sysInitArgs(argc, argv);
-	if (dbglog) {
-		fprintf(dbglog, "main: sysInitArgs done\n");
-		fflush(dbglog);
-	}
 
 	if (!sysArgCheck("--no-crash-handler")) {
-		if (dbglog) fprintf(dbglog, "main: calling crashInit\n"), fflush(dbglog);
 		crashInit();
-		if (dbglog) fprintf(dbglog, "main: crashInit done\n"), fflush(dbglog);
 	}
 
-	if (dbglog) fprintf(dbglog, "main: calling sysInit\n"), fflush(dbglog);
 	sysInit();
-	if (dbglog) fprintf(dbglog, "main: sysInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling fsInit\n"), fflush(dbglog);
 	fsInit();
-	if (dbglog) fprintf(dbglog, "main: fsInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling configInit\n"), fflush(dbglog);
 	configInit();
-	if (dbglog) fprintf(dbglog, "main: configInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling videoInit\n"), fflush(dbglog);
 	videoInit();
-	if (dbglog) fprintf(dbglog, "main: videoInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling inputInit\n"), fflush(dbglog);
 	inputInit();
-	if (dbglog) fprintf(dbglog, "main: inputInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling audioInit\n"), fflush(dbglog);
 	audioInit();
-	if (dbglog) fprintf(dbglog, "main: audioInit done\n"), fflush(dbglog);
-
-	if (dbglog) fprintf(dbglog, "main: calling romdataInit\n"), fflush(dbglog);
 	romdataInit();
-	if (dbglog) fprintf(dbglog, "main: romdataInit done\n"), fflush(dbglog);
 
-	if (dbglog) fprintf(dbglog, "main: calling romdataCheckGbcRom\n"), fflush(dbglog);
 	g_ValidGbcRomFound = romdataCheckGbcRom();
-	if (dbglog) fprintf(dbglog, "main: romdataCheckGbcRom done\n"), fflush(dbglog);
 
-	if (dbglog) fprintf(dbglog, "main: calling gameInit\n"), fflush(dbglog);
 	gameInit();
-	if (dbglog) fprintf(dbglog, "main: gameInit done\n"), fflush(dbglog);
 
 	if (fsGetModDir()) {
 		modConfigLoad(MOD_CONFIG_FNAME);
@@ -181,28 +129,19 @@ int main(int argc, const char **argv)
 
 	atexit(cleanup);
 
-	if (dbglog) fprintf(dbglog, "main: calling bootCreateSched\n"), fflush(dbglog);
 	bootCreateSched();
-	if (dbglog) fprintf(dbglog, "main: bootCreateSched done\n"), fflush(dbglog);
 
-	if (dbglog) fprintf(dbglog, "main: calling osGetMemSize\n"), fflush(dbglog);
 	g_OsMemSize = osGetMemSize();
-	if (dbglog) fprintf(dbglog, "main: osGetMemSize done, size=%u\n", g_OsMemSize), fflush(dbglog);
 
 	g_MempHeapSize = g_OsMemSize;
-	if (dbglog) fprintf(dbglog, "main: calling sysMemZeroAlloc for %u bytes\n", g_MempHeapSize), fflush(dbglog);
 	g_MempHeap = sysMemZeroAlloc(g_MempHeapSize);
-	if (dbglog) fprintf(dbglog, "main: sysMemZeroAlloc done, ptr=%p\n", g_MempHeap), fflush(dbglog);
 	if (!g_MempHeap) {
-		if (dbglog) fprintf(dbglog, "main: FATAL - could not alloc memp heap\n"), fflush(dbglog);
 		sysFatalError("Could not alloc %u bytes for memp heap.", g_MempHeapSize);
 	}
 
 	sysLogPrintf(LOG_NOTE, "memp heap at %p - %p", g_MempHeap, g_MempHeap + g_MempHeapSize);
 	sysLogPrintf(LOG_NOTE, "rom  file at %p - %p", g_RomFile, g_RomFile + g_RomFileSize);
-	if (dbglog) fprintf(dbglog, "main: about to check args and call mainProc\n"), fflush(dbglog);
 
-	sysLogPrintf(LOG_NOTE, "main: checking args");
 	g_SndDisabled = sysArgCheck("--no-sound");
 
 	g_StageNum = sysArgGetInt("--boot-stage", STAGE_TITLE);
@@ -215,24 +154,9 @@ int main(int argc, const char **argv)
 		g_StageNum = STAGE_TITLE;
 	}
 
-	if (g_StageNum != STAGE_TITLE) {
-		sysLogPrintf(LOG_NOTE, "boot stage set to 0x%02x", g_StageNum);
-	}
-
 	g_FileAutoSelect = sysArgGetInt("--profile", -1);
-	if (g_FileAutoSelect >= 0) {
-		sysLogPrintf(LOG_NOTE, "player profile set to %d", g_FileAutoSelect);
-	}
-
-	if (dbglog) fprintf(dbglog, "main: calling mainProc\n"), fflush(dbglog);
-	sysLogPrintf(LOG_NOTE, "main: calling mainProc");
-
-	// Store the file handle globally so mainProc can use it
-	extern FILE *g_dbglog;
-	g_dbglog = dbglog;
 
 	mainProc();
-	if (dbglog) fprintf(dbglog, "main: mainProc returned\n"), fflush(dbglog);
 
 	return 0;
 }

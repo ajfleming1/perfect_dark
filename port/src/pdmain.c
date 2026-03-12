@@ -217,21 +217,13 @@ void mainInit(void)
 	s32 j;
 	u32 addr;
 
-	sysLogPrintf(LOG_NOTE, "mainInit: faultInit");
 	faultInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: dmaInit");
 	dmaInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: amgrInit");
 	amgrInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: varsInit");
 	varsInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: mempInit");
 	mempInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: memaInit");
 	memaInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: joyInit");
 	joyInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: joyReset");
 	joyReset();
 
 	var8005d9b0 = rmonIsDisabled();
@@ -239,104 +231,56 @@ void mainInit(void)
 	g_Is4Mb = (osGetMemSize() <= 0x400000);
 	g_VmShowStats = 0;
 
-	sysLogPrintf(LOG_NOTE, "mainInit: viSetMode");
 	// no copyright screen
 	viSetMode(VIMODE_HI);
-	sysLogPrintf(LOG_NOTE, "mainInit: viConfigureForLegal");
 	viConfigureForLegal();
-	sysLogPrintf(LOG_NOTE, "mainInit: viBlack");
 	viBlack(true);
-	sysLogPrintf(LOG_NOTE, "mainInit: viUpdateMode");
 	viUpdateMode();
 
-	sysLogPrintf(LOG_NOTE, "mainInit: filesInit");
 	filesInit();
 
 	if (var8005d9b0) {
 		argSetString("          -ml0 -me0 -mgfx100 -mvtx50 -mt700 -ma400");
 	}
 
-	sysLogPrintf(LOG_NOTE, "mainInit: mempSetHeap");
 	mempSetHeap(g_MempHeap, g_MempHeapSize);
 
-	sysLogPrintf(LOG_NOTE, "mainInit: mempResetPool");
 	mempResetPool(MEMPOOL_8);
 	mempResetPool(MEMPOOL_PERMANENT);
-	sysLogPrintf(LOG_NOTE, "mainInit: crashReset");
 	crashReset();
-	sysLogPrintf(LOG_NOTE, "mainInit: challengesInit");
 	challengesInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: utilsInit");
 	utilsInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: texInit");
 	texInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: langInit");
 	langInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: lvInit");
 	lvInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: cheatsInit");
 	cheatsInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: textInit");
 	textInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: dhudInit");
 	dhudInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: playermgrInit");
 	playermgrInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: frametimeInit");
 	frametimeInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: profileInit");
 	profileInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: smokesInit");
 	smokesInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: mpInit");
 	mpInit(true);
-	sysLogPrintf(LOG_NOTE, "mainInit: pheadInit");
 	pheadInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: paksInit");
 	paksInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: pheadInit2");
 	pheadInit2();
-	sysLogPrintf(LOG_NOTE, "mainInit: animsInit");
 	animsInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: racesInit");
 	racesInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: bodiesInit");
 	bodiesInit();
-	sysLogPrintf(LOG_NOTE, "mainInit: titleInit");
 	titleInit();
 
 	modelSetDistanceChecksDisabled(true); // don't use LODs
 
-	sysLogPrintf(LOG_NOTE, "mainInit: complete");
 	g_MainIsBooting = 0;
 }
 
-FILE *g_dbglog = NULL;
-
 void mainProc(void)
 {
-	FILE *dbglog = g_dbglog;
-
-	sysLogPrintf(LOG_NOTE, "mainProc: calling mainInit");
-	if (dbglog) fprintf(dbglog, "mainProc: calling mainInit\n"), fflush(dbglog);
 	mainInit();
-	if (dbglog) fprintf(dbglog, "mainProc: mainInit done\n"), fflush(dbglog);
-
-	sysLogPrintf(LOG_NOTE, "mainProc: mainInit done, calling rdpInit");
-	if (dbglog) fprintf(dbglog, "mainProc: calling rdpInit\n"), fflush(dbglog);
 	rdpInit();
-	if (dbglog) fprintf(dbglog, "mainProc: rdpInit done\n"), fflush(dbglog);
-
-	sysLogPrintf(LOG_NOTE, "mainProc: rdpInit done, calling sndInit");
-	if (dbglog) fprintf(dbglog, "mainProc: calling sndInit\n"), fflush(dbglog);
 	sndInit();
-	if (dbglog) fprintf(dbglog, "mainProc: sndInit done, entering main loop\n"), fflush(dbglog);
 
-	sysLogPrintf(LOG_NOTE, "mainProc: sndInit done, entering main loop");
-
-	if (dbglog) fprintf(dbglog, "mainProc: entering main loop\n"), fflush(dbglog);
 	while (true) {
-		if (dbglog) fprintf(dbglog, "mainLoop iteration\n"), fflush(dbglog);
 		mainLoop();
 	}
 }
@@ -367,28 +311,16 @@ void mainOverrideVariable(char *name, void *value)
  */
 void mainLoop(void)
 {
-	extern FILE *g_dbglog;
 	s32 ending = false;
 	s32 index;
 	s32 numplayers;
 	u32 stack;
 
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: start\n"), fflush(g_dbglog);
-
-	sysLogPrintf(LOG_NOTE, "mainLoop: calling func0f175f98");
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling func0f175f98\n"), fflush(g_dbglog);
 	func0f175f98();
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: func0f175f98 done\n"), fflush(g_dbglog);
-	sysLogPrintf(LOG_NOTE, "mainLoop: func0f175f98 done");
 
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: setting var8005d9c4=0\n"), fflush(g_dbglog);
 	var8005d9c4 = 0;
 
-	sysLogPrintf(LOG_NOTE, "mainLoop: calling argGetLevel");
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling argGetLevel\n"), fflush(g_dbglog);
 	argGetLevel(&g_StageNum);
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: argGetLevel done, stage=%d\n", g_StageNum), fflush(g_dbglog);
-	sysLogPrintf(LOG_NOTE, "mainLoop: argGetLevel done, stage=%d", g_StageNum);
 
 	if (g_DoBootPakMenu) {
 		g_Vars.pakstocheck = 0xfd;
@@ -411,29 +343,18 @@ void mainLoop(void)
 		g_StageNum = STAGE_4MBMENU;
 	}
 
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling rngSetSeed\n"), fflush(g_dbglog);
-	sysLogPrintf(LOG_NOTE, "mainLoop: calling rngSetSeed");
 	rngSetSeed(osGetCount());
-	if (g_dbglog) fprintf(g_dbglog, "mainLoop: rngSetSeed done, entering outer loop\n"), fflush(g_dbglog);
-	sysLogPrintf(LOG_NOTE, "mainLoop: entering outer loop");
 
 	// Outer loop - this is infinite because ending is never changed
 	while (!ending) {
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: outer loop iteration start\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: outer loop iteration start");
 		g_MainNumGfxTasks = 0;
 		g_MainGameLogicEnabled = true;
 		g_MainIsEndscreen = false;
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: flags set, var8005d9b0=%d var8005d9c4=%d\n", var8005d9b0, var8005d9c4), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: flags set, var8005d9b0=%d var8005d9c4=%d", var8005d9b0, var8005d9c4);
 
 		if (var8005d9b0 && var8005d9c4 == 0) {
-			if (g_dbglog) fprintf(g_dbglog, "mainLoop: entering var8005d9b0 block\n"), fflush(g_dbglog);
 			index = -1;
 
-			if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling IS4MB\n"), fflush(g_dbglog);
 			if (IS4MB()) {
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: IS4MB returned true\n"), fflush(g_dbglog);
 				if (g_StageNum < STAGE_TITLE && getNumPlayers() >= 2) {
 					index = 0; \
 					while (g_StageAllocations4Mb[index].stagenum) { \
@@ -463,8 +384,6 @@ void mainLoop(void)
 
 				argSetString(g_StageAllocations4Mb[index].string);
 			} else {
-				// 8MB
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: IS4MB returned false (8MB)\n"), fflush(g_dbglog);
 				if (g_StageNum < STAGE_TITLE && getNumPlayers() >= 2) {
 					index = 0; \
 					while (g_StageAllocations8Mb[index].stagenum) { \
@@ -495,40 +414,22 @@ void mainLoop(void)
 			}
 		}
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: completed var8005d9b0 block, calling mempResetPool\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: after stage alloc, calling mempResetPool");
 		var8005d9c4 = 0;
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling mempResetPool MEMPOOL_7\n"), fflush(g_dbglog);
 		mempResetPool(MEMPOOL_7);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling mempResetPool MEMPOOL_STAGE\n"), fflush(g_dbglog);
 		mempResetPool(MEMPOOL_STAGE);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: mempResetPool done\n"), fflush(g_dbglog);
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling filesStop(4)\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling filesStop");
 		filesStop(4);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: filesStop done\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: filesStop done");
 
 		if (argFindByPrefix(1, "-ma")) {
 			g_MainMemaHeapSize = strtol(argFindByPrefix(1, "-ma"), NULL, 0) * 1024;
 		}
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling memaReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling memaReset");
 		memaReset(mempAlloc(g_MainMemaHeapSize, MEMPOOL_STAGE), g_MainMemaHeapSize);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling langReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling langReset");
 		langReset(g_StageNum);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling playermgrReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling playermgrReset");
 		playermgrReset();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: playermgrReset done\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: playermgrReset done, g_StageNum=%d STAGE_TITLE=%d", g_StageNum, STAGE_TITLE);
 
 		if (g_StageNum >= STAGE_TITLE) {
-			sysLogPrintf(LOG_NOTE, "mainLoop: numplayers=0 (title screen)");
 			numplayers = 0;
 		} else {
 			if (argFindByPrefix(1, "-play")) {
@@ -556,11 +457,7 @@ void mainLoop(void)
 			g_Vars.antiplayernum = 1;
 		}
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling playermgrAllocatePlayers\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling playermgrAllocatePlayers(%d)", numplayers);
 		playermgrAllocatePlayers(numplayers);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: playermgrAllocatePlayers done\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: playermgrAllocatePlayers done");
 
 		if (argFindByPrefix(1, "-mpbots")) {
 			g_Vars.lvmpbotlevel = 1;
@@ -594,54 +491,26 @@ void mainLoop(void)
 			mpReset();
 		}
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling gfxReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling gfxReset");
 		gfxReset();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: gfxReset done, calling joyReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling joyReset");
 		joyReset();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: joyReset done, calling dhudReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling dhudReset");
 		dhudReset();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: dhudReset done, calling zbufReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling zbufReset");
 		zbufReset(g_StageNum);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: zbufReset done, calling lvReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling lvReset");
 		lvReset(g_StageNum);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: lvReset done, calling viReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling viReset");
 		viReset(g_StageNum);
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: viReset done, calling frametimeCalculate\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: calling frametimeCalculate");
 		frametimeCalculate();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: frametimeCalculate done, calling profileReset\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: frametimeCalculate done");
 		profileReset();
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: profileReset done, entering inner loop\n"), fflush(g_dbglog);
-		sysLogPrintf(LOG_NOTE, "mainLoop: profileReset done, entering inner loop");
 
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: inner loop start, g_MainChangeToStageNum=%d\n", g_MainChangeToStageNum), fflush(g_dbglog);
 		while (g_MainChangeToStageNum < 0) {
-			if (g_dbglog) fprintf(g_dbglog, "mainLoop: inner loop iteration, g_MainChangeToStageNum=%d\n", g_MainChangeToStageNum), fflush(g_dbglog);
 			const s32 cycles = osGetCount() - g_Vars.thisframestartt;
 			if (!g_Vars.mininc60 || (cycles >= g_Vars.mininc60 * CYCLES_PER_FRAME - CYCLES_PER_FRAME / 2)) {
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling schedStartFrame\n"), fflush(g_dbglog);
-				sysLogPrintf(LOG_NOTE, "mainLoop: calling schedStartFrame");
 				schedStartFrame(&g_Sched);
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: calling mainTick\n"), fflush(g_dbglog);
-				sysLogPrintf(LOG_NOTE, "mainLoop: calling mainTick");
 				mainTick();
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: mainTick done\n"), fflush(g_dbglog);
-				sysLogPrintf(LOG_NOTE, "mainLoop: mainTick done");
 				schedEndFrame(&g_Sched);
-				if (g_dbglog) fprintf(g_dbglog, "mainLoop: schedEndFrame done\n"), fflush(g_dbglog);
 			}
 			if (g_TickExtraSleep) {
 				sysSleep(EXTRA_SLEEP_TIME);
 			}
 		}
-		if (g_dbglog) fprintf(g_dbglog, "mainLoop: exited inner loop\n"), fflush(g_dbglog);
 
 		lvStop();
 		mempDisablePool(MEMPOOL_STAGE);
@@ -662,8 +531,6 @@ void mainTick(void)
 	OSScMsg msg = {OS_SC_DONE_MSG};
 	s32 i;
 
-	sysLogPrintf(LOG_NOTE, "mainTick: entry");
-
 	if (g_MainChangeToStageNum < 0) {
 		frametimeCalculate();
 		profileReset();
@@ -671,30 +538,14 @@ void mainTick(void)
 		joyDebugJoy();
 		schedSetCrashEnable2(false);
 
-		sysLogPrintf(LOG_NOTE, "mainTick: g_MainGameLogicEnabled=%d", g_MainGameLogicEnabled);
-
 		if (g_MainGameLogicEnabled) {
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: calling gfxGetMasterDisplayList");
 			gdl = gdlstart = gfxGetMasterDisplayList();
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: gdl=%p", gdl);
 
 			gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0x0000, G_TX_LOADTILE, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD);
 			gDPSetTile(gdl++, G_IM_FMT_RGBA, G_IM_SIZ_4b, 0, 0x0100, 6, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD);
 
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: calling lvTick");
 			lvTick();
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: calling playermgrShuffle");
 			playermgrShuffle();
-#ifdef PLATFORM_WIIU
-#endif
 
 			if (g_StageNum < STAGE_TITLE) {
 				for (i = 0; i < PLAYERCOUNT(); i++) {
@@ -711,13 +562,7 @@ void mainTick(void)
 				}
 			}
 
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: calling lvRender");
 			gdl = lvRender(gdl);
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: lvRender done");
 
 			if (debugGetProfileMode() >= 2) {
 				gdl = profileRender(gdl);
@@ -727,29 +572,14 @@ void mainTick(void)
 			gSPEndDisplayList(gdl++);
 		}
 
-#ifdef PLATFORM_WIIU
-#endif
-		sysLogPrintf(LOG_NOTE, "mainTick: calling gfxSwapBuffers");
 		if (g_MainGameLogicEnabled) {
 			gfxSwapBuffers();
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: gfxSwapBuffers done, calling viUpdateMode");
 			viUpdateMode();
-#ifdef PLATFORM_WIIU
-#endif
-			sysLogPrintf(LOG_NOTE, "mainTick: viUpdateMode done");
 		}
 
-#ifdef PLATFORM_WIIU
-#endif
-		sysLogPrintf(LOG_NOTE, "mainTick: calling rdpCreateTask");
 		rdpCreateTask(gdlstart, gdl, 0, (uintptr_t) &msg);
-#ifdef PLATFORM_WIIU
-#endif
 		memaPrint();
 		profileSetMarker(PROFILE_MAINTICK_END);
-		sysLogPrintf(LOG_NOTE, "mainTick: done");
 	}
 }
 

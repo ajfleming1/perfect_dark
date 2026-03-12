@@ -33,6 +33,9 @@
 #include "lib/str.h"
 #include "data.h"
 #include "types.h"
+#ifdef __WIIU__
+void SYSLaunchMenu(void);
+#endif
 
 u8 g_InventoryWeapon;
 
@@ -2255,7 +2258,11 @@ MenuItemHandlerResult menuhandlerChangeAgent(s32 operation, struct menuitem *ite
 MenuItemHandlerResult menuhandlerExitGame(s32 operation, struct menuitem *item, union handlerdata *data)
 {
 	if (operation == MENUOP_SET) {
+#ifdef __WIIU__
+		SYSLaunchMenu();
+#else
 		exit(0);
+#endif
 	}
 
 	return 0;
